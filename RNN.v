@@ -82,16 +82,12 @@ always @(posedge clk ) begin
                 x_data = idata;
             end
             1 : begin
-                mem13[address] = {{1{mdata_r[19]}},mdata_r};
+                mem13[address] = $signed(mdata_r);
             end
             2 : begin
-                mem13[address] = mem13[address] + {{1{mdata_r[19]}},mdata_r};
-                h_new = 0;
+                mem13[address] = mem13[address] + $signed(mdata_r);
             end
             3 : begin
-                /*$display("%d %x %x %x %x",address,h_new,mdata_r,x_data[address] ? 
-                    $signed(h_new[`PREC-1:16]) + $signed(mdata_r) : 
-                    h_new[`PREC-1:16],x_data);*/
                 h_new[`PREC-1:16] = x_data[address] ? 
                     $signed(h_new[`PREC-1:16]) + $signed(mdata_r) : 
                     h_new[`PREC-1:16];
@@ -106,7 +102,6 @@ always @(posedge clk ) begin
                         h_tmp[h_offset] = h_new[35:16] + carry_bit;
                     end
                     h_new = 0;
-                    //$display("h_new=0");
                 end
             end
             4 : begin
@@ -124,7 +119,6 @@ always @(posedge clk ) begin
         stage = stage == (5+(t_offset!=0)) ? 3 : stage;
         next_stage = 0;
         i_en_sig = 0;
-        //$display("%d %d %d %d",stage,t_offset,h_offset,address);
         case (stage)
             0 : begin
                 i_en_sig = 1;
@@ -156,7 +150,6 @@ always @(posedge clk ) begin
                 msel_sig = 3'b010;
                 address = address - 1;
                 maddr_sig = {h_offset,address};
-                //$display("%d %d",h_offset,address);
             end
             default: begin
             end
@@ -187,6 +180,7 @@ always @(posedge clk ) begin
         h_offset = 0;
         //mce_sig = 0;
         next_stage = 0;
+        h_new = 0;
     end
 end
 
