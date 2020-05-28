@@ -19,7 +19,7 @@ output    [2:0] msel;
 integer i;
 
 reg signed [19:0] h_old[0:63];
-reg signed [19:0] h_tmp[0:63];
+reg signed [19:0] h_tmp[0:63], tmp;
 reg signed [(`PREC-1):0] h_new;
 reg signed [12:0] mul_00, mul_01, mul_02, mul_10, mul_11, mul_12, mul_20, mul_21, mul_22;
 reg [31:0] x_data;
@@ -101,13 +101,17 @@ always @(posedge clk ) begin
                 end
             end
             3 : begin
-                h_new[`PREC-1:16] = h_new[`PREC-1:16] + $signed(mdata_r);
-                if ((|h_new[`PREC-2:32])&!h_new[`PREC-1]) begin
-                    h_tmp[h_offset] = 20'h10000;
-                end else if ((|(~h_new[`PREC-2:32]))&h_new[`PREC-1]) begin
-                    h_tmp[h_offset] = 20'hf0000;
+                if(address==1)begin
+                    h_new[`PREC-1:16] = h_new[`PREC-1:16] + $signed(mdata_r);
+                    if ((|h_new[`PREC-2:32])&!h_new[`PREC-1]) begin
+                        tmp = 20'h10000;
+                    end else if ((|(~h_new[`PREC-2:32]))&h_new[`PREC-1]) begin
+                        tmp = 20'hf0000;
+                    end else begin
+                        tmp = h_new[35:16];
+                    end
                 end else begin
-                    h_tmp[h_offset] = h_new[35:16];
+                    h_tmp[h_offset] = tmp;
                 end
             end
             4 : begin
@@ -171,7 +175,7 @@ always @(posedge clk ) begin
             end
             3 : begin
                 msel_sig = 3'b011;
-                address = 0;
+                address = (address - 1) & 1;
                 maddr_sig = h_offset;
             end
             4 : begin
