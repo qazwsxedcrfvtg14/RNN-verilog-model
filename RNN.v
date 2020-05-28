@@ -21,7 +21,7 @@ integer i;
 reg signed [19:0] h_old[0:63];
 reg signed [19:0] h_tmp[0:63], tmp;
 reg signed [(`PREC-1):0] h_new;
-reg signed [12:0] mul_00, mul_01, mul_02, mul_10, mul_11, mul_12, mul_20, mul_21, mul_22;
+reg signed [10:0] mul_00, mul_01, mul_02, mul_03, mul_10, mul_11, mul_12, mul_13, mul_20, mul_21, mul_22, mul_23, mul_30, mul_31, mul_32, mul_33;
 reg [31:0] x_data;
 
 reg busy_sig;
@@ -84,10 +84,12 @@ always @(posedge clk ) begin
             1 : begin
                 h_new = h_new +
                     $signed(mul_00) +
-                    $signed({mul_01,6'd0}) + $signed({mul_10,6'd0}) +
-                    $signed({mul_02,12'd0}) + $signed({mul_11,12'd0}) + $signed({mul_20,12'd0}) +
-                    $signed({mul_12,18'd0}) + $signed({mul_21,18'd0}) +
-                    $signed({mul_22,24'd0});
+                    $signed({mul_01,5'd0}) + $signed({mul_10,5'd0}) +
+                    $signed({mul_02,10'd0}) + $signed({mul_11,10'd0}) + $signed({mul_20,10'd0}) +
+                    $signed({mul_03,15'd0}) + $signed({mul_12,15'd0}) + $signed({mul_21,15'd0}) + $signed({mul_30,15'd0}) +
+                    $signed({mul_13,20'd0}) + $signed({mul_22,20'd0}) + $signed({mul_31,20'd0}) +
+                    $signed({mul_23,25'd0}) + $signed({mul_32,25'd0}) +
+                    $signed({mul_33,30'd0});
                 h_new[`PREC-1:16] = h_new[`PREC-1:16] + $signed(mdata_r);
             end
             2 : begin
@@ -121,33 +123,50 @@ always @(posedge clk ) begin
                 mul_00 = 0;
                 mul_01 = 0;
                 mul_02 = 0;
+                mul_03 = 0;
                 mul_10 = 0;
                 mul_11 = 0;
                 mul_12 = 0;
+                mul_13 = 0;
                 mul_20 = 0;
                 mul_21 = 0;
                 mul_22 = 0;
+                mul_23 = 0;
+                mul_30 = 0;
+                mul_31 = 0;
+                mul_32 = 0;
+                mul_33 = 0;
                 h_new = 0;
             end
             5 : begin
                 h_new = h_new +
                     $signed(mul_00) +
-                    $signed({mul_01,6'd0}) + $signed({mul_10,6'd0}) +
-                    $signed({mul_02,12'd0}) + $signed({mul_11,12'd0}) + $signed({mul_20,12'd0}) +
-                    $signed({mul_12,18'd0}) + $signed({mul_21,18'd0}) +
-                    $signed({mul_22,24'd0});
+                    $signed({mul_01,5'd0}) + $signed({mul_10,5'd0}) +
+                    $signed({mul_02,10'd0}) + $signed({mul_11,10'd0}) + $signed({mul_20,10'd0}) +
+                    $signed({mul_03,15'd0}) + $signed({mul_12,15'd0}) + $signed({mul_21,15'd0}) + $signed({mul_30,15'd0}) +
+                    $signed({mul_13,20'd0}) + $signed({mul_22,20'd0}) + $signed({mul_31,20'd0}) +
+                    $signed({mul_23,25'd0}) + $signed({mul_32,25'd0}) +
+                    $signed({mul_33,30'd0});
 
-                mul_00 = $signed({1'd0,h_old[address][5:0]})*$signed({1'd0,mdata_r[5:0]});
-                mul_01 = $signed({1'd0,h_old[address][5:0]})*$signed({1'd0,mdata_r[11:6]});
-                mul_02 = $signed({1'd0,h_old[address][5:0]})*$signed(mdata_r[17:12]);
+                mul_00 = $signed({1'd0,h_old[address][4:0]})*$signed({1'd0,mdata_r[4:0]});
+                mul_01 = $signed({1'd0,h_old[address][4:0]})*$signed({1'd0,mdata_r[9:5]});
+                mul_02 = $signed({1'd0,h_old[address][4:0]})*$signed({1'd0,mdata_r[14:10]});
+                mul_03 = $signed({1'd0,h_old[address][4:0]})*$signed(mdata_r[17:15]);
 
-                mul_10 = $signed({1'd0,h_old[address][11:6]})*$signed({1'd0,mdata_r[5:0]});
-                mul_11 = $signed({1'd0,h_old[address][11:6]})*$signed({1'd0,mdata_r[11:6]});
-                mul_12 = $signed({1'd0,h_old[address][11:6]})*$signed(mdata_r[17:12]);
+                mul_10 = $signed({1'd0,h_old[address][9:5]})*$signed({1'd0,mdata_r[4:0]});
+                mul_11 = $signed({1'd0,h_old[address][9:5]})*$signed({1'd0,mdata_r[9:5]});
+                mul_12 = $signed({1'd0,h_old[address][9:5]})*$signed({1'd0,mdata_r[14:10]});
+                mul_13 = $signed({1'd0,h_old[address][9:5]})*$signed(mdata_r[17:15]);
+
+                mul_20 = $signed({1'd0,h_old[address][14:10]})*$signed({1'd0,mdata_r[4:0]});
+                mul_21 = $signed({1'd0,h_old[address][14:10]})*$signed({1'd0,mdata_r[9:5]});
+                mul_22 = $signed({1'd0,h_old[address][14:10]})*$signed({1'd0,mdata_r[14:10]});
+                mul_23 = $signed({1'd0,h_old[address][14:10]})*$signed(mdata_r[17:15]);
                 
-                mul_20 = $signed(h_old[address][17:12])*$signed({1'd0,mdata_r[5:0]});
-                mul_21 = $signed(h_old[address][17:12])*$signed({1'd0,mdata_r[11:6]});
-                mul_22 = $signed(h_old[address][17:12])*$signed(mdata_r[17:12]);
+                mul_30 = $signed(h_old[address][17:15])*$signed({1'd0,mdata_r[4:0]});
+                mul_31 = $signed(h_old[address][17:15])*$signed({1'd0,mdata_r[9:5]});
+                mul_32 = $signed(h_old[address][17:15])*$signed({1'd0,mdata_r[14:10]});
+                mul_33 = $signed(h_old[address][17:15])*$signed(mdata_r[17:15]);
             end
             default: begin
             end
@@ -221,12 +240,19 @@ always @(posedge clk ) begin
         mul_00 = 0;
         mul_01 = 0;
         mul_02 = 0;
+        mul_03 = 0;
         mul_10 = 0;
         mul_11 = 0;
         mul_12 = 0;
+        mul_13 = 0;
         mul_20 = 0;
         mul_21 = 0;
         mul_22 = 0;
+        mul_23 = 0;
+        mul_30 = 0;
+        mul_31 = 0;
+        mul_32 = 0;
+        mul_33 = 0;
     end
 end
 
