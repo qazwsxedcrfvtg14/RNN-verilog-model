@@ -20,7 +20,8 @@ integer i;
 
 reg signed [19:0] h_old[0:63];
 reg signed [19:0] h_tmp[0:63];
-reg signed [(`PREC-1):0] h_new;
+reg signed [(`PREC-1):0] h_new,tmp,tmp2;
+reg signed [19:0] mul_00, mul_01, mul_10, mul_11;
 reg [31:0] x_data;
 
 reg busy_sig;
@@ -81,12 +82,17 @@ always @(posedge clk ) begin
                 x_data = idata;
             end
             1 : begin
+                h_new = h_new + $signed(mul_00) + $signed({mul_01,9'd0}) + $signed({mul_10,9'd0}) + $signed({mul_11,18'd0});
                 carry_bit = h_new[(`PREC-1)] ? (h_new[15] & (|h_new[14:0]) ) : h_new[15];
                 h_new[`PREC-1:16] = h_new[`PREC-1:16] + $signed(mdata_r) + carry_bit;
                 h_new[15:0] = 0;
             end
             2 : begin
                 h_new[`PREC-1:16] = h_new[`PREC-1:16] + $signed(mdata_r);
+                mul_00 = 0;
+                mul_01 = 0;
+                mul_10 = 0;
+                mul_11 = 0;
             end
             3 : begin
                 h_new[`PREC-1:16] = x_data[address] ? 
@@ -109,7 +115,11 @@ always @(posedge clk ) begin
                 end
             end
             5 : begin
-                h_new = h_new + $signed(h_old[address][17:0]) * $signed(mdata_r);
+                h_new = h_new + $signed(mul_00) + $signed({mul_01,9'd0}) + $signed({mul_10,9'd0}) + $signed({mul_11,18'd0});
+                mul_00 = $signed({1'd0,h_old[address][8:0]})*$signed({1'd0,mdata_r[8:0]});
+                mul_01 = $signed({1'd0,h_old[address][8:0]})*$signed(mdata_r[17:9]);
+                mul_10 = $signed(h_old[address][17:9])*$signed({1'd0,mdata_r[8:0]});
+                mul_11 = $signed(h_old[address][17:9])*$signed(mdata_r[17:9]);
             end
             default: begin
             end
@@ -180,6 +190,10 @@ always @(posedge clk ) begin
         //mce_sig = 0;
         next_stage = 0;
         h_new = 0;
+        mul_00 = 0;
+        mul_01 = 0;
+        mul_10 = 0;
+        mul_11 = 0;
     end
 end
 
