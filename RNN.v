@@ -18,7 +18,6 @@ output    [2:0] msel;
 
 integer i;
 
-reg signed [20:0] mem13[0:63];
 reg signed [19:0] h_old[0:63];
 reg signed [19:0] h_tmp[0:63];
 reg signed [(`PREC-1):0] h_new;
@@ -82,24 +81,24 @@ always @(posedge clk ) begin
                 x_data = idata;
             end
             1 : begin
-                mem13[address] = $signed(mdata_r);
+                carry_bit = h_new[(`PREC-1)] ? (h_new[15] & (|h_new[14:0]) ) : h_new[15];
+                h_new[`PREC-1:16] = h_new[`PREC-1:16] + $signed(mdata_r) + carry_bit;
+                h_new[15:0] = 0;
             end
             2 : begin
-                mem13[address] = mem13[address] + $signed(mdata_r);
+                h_new[`PREC-1:16] = h_new[`PREC-1:16] + $signed(mdata_r);
             end
             3 : begin
                 h_new[`PREC-1:16] = x_data[address] ? 
                     $signed(h_new[`PREC-1:16]) + $signed(mdata_r) : 
                     h_new[`PREC-1:16];
                 if(!address) begin
-                    h_new[`PREC-1:16] = $signed(h_new[`PREC-1:16]) + $signed(mem13[h_offset]);
-                    if ($signed(h_new) > $signed(40'h0100000000)) begin
+                    if ($signed(h_new[`PREC-1:16]) > $signed(20'h10000)) begin
                         h_tmp[h_offset] = 20'h10000;
-                    end else if ($signed(h_new) < $signed(-40'h0100000000)) begin
+                    end else if ($signed(h_new[`PREC-1:16]) < $signed(-20'h10000)) begin
                         h_tmp[h_offset] = 20'hf0000;
                     end else begin
-                        carry_bit = h_new[(`PREC-1)] ? (h_new[15] & (|h_new[14:0]) ) : h_new[15];
-                        h_tmp[h_offset] = h_new[35:16] + carry_bit;
+                        h_tmp[h_offset] = h_new[35:16];
                     end
                     h_new = 0;
                 end
@@ -116,7 +115,7 @@ always @(posedge clk ) begin
             end
         endcase
         stage = stage + next_stage;
-        stage = stage == (5+(t_offset!=0)) ? 3 : stage;
+        stage = stage == (5+(t_offset!=0)) ? 1 : stage;
         next_stage = 0;
         i_en_sig = 0;
         case (stage)
@@ -128,13 +127,13 @@ always @(posedge clk ) begin
             end
             1 : begin
                 msel_sig = 3'b001;
-                address = address - 1;
-                maddr_sig = address;
+                address = 0;
+                maddr_sig = h_offset;
             end
             2 : begin
                 msel_sig = 3'b011;
-                address = address - 1;
-                maddr_sig = address;
+                address = 0;
+                maddr_sig = h_offset;
             end
             3 : begin
                 msel_sig = 3'b000;
