@@ -102,9 +102,9 @@ always @(posedge clk ) begin
             end
             3 : begin
                 h_new[`PREC-1:16] = h_new[`PREC-1:16] + $signed(mdata_r);
-                if ($signed(h_new[`PREC-1:16]) > $signed(20'h10000)) begin
+                if ((|h_new[`PREC-2:32])&!h_new[`PREC-1]) begin
                     h_tmp[h_offset] = 20'h10000;
-                end else if ($signed(h_new[`PREC-1:16]) < $signed(-20'h10000)) begin
+                end else if ((|(~h_new[`PREC-2:32]))&h_new[`PREC-1]) begin
                     h_tmp[h_offset] = 20'hf0000;
                 end else begin
                     h_tmp[h_offset] = h_new[35:16];
