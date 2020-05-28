@@ -14,25 +14,38 @@ output    [2:0] msel;
 // Please DO NOT modified the I/O signal
 // TODO
 
-reg signed [19:0] mem13[0:63];
+`define PREC 36
+
+integer i;
+
+reg signed [20:0] mem13[0:63];
 reg signed [19:0] h_old[0:63];
-reg signed [39:0] h_new[0:63];
+reg signed [19:0] h_tmp[0:63];
+reg signed [(`PREC-1):0] h_new;
 reg [31:0] x_data;
 
 reg busy_sig;
 reg i_en_sig;
-reg mce_sig;
+//reg mce_sig;
 reg [19:0] mdata_w_sig;
 reg [2:0] msel_sig;
+reg [16:0] maddr_sig;
 
-reg [11:0] address;
+reg [5:0] address;
+reg [10:0] t_offset;
+reg [5:0] h_offset;
 
 reg inited;
 reg initmem;
 
-reg [1:0] stage;
+reg [2:0] stage;
 reg next_stage;
 reg [19:0] t_count;
+
+reg carry_bit;
+
+
+//reg signed [39:0] mul_tmp;
 
 // base area: X = 500
 
@@ -50,108 +63,130 @@ reg [19:0] t_count;
 
 assign busy = busy_sig;
 assign i_en = i_en_sig;
-assign mce = mce_sig;
+assign mce = busy_sig;
+//assign mce = mce_sig;
 assign mdata_w = mdata_w_sig;
 assign msel = msel_sig;
-assign maddr = address;
+assign maddr = maddr_sig;
 
 always @(posedge clk ) begin
-    busy_sig <= ready & inited & !reset;
-    inited <= reset | inited;
+    busy_sig = inited & !reset & (ready | busy_sig);
+    if (reset) begin
+        inited = 1;
+    end
     if (busy_sig) begin
-        mce_sig <= 1;
+        //mce_sig = 1;
         case (stage)
             0 : begin
-                t_count <= mdata_r;
-                x_data <= idata;
+                t_count = mdata_r;
+                x_data = idata;
             end
             1 : begin
-                mem13[address] <= mdata_r;
+                mem13[address] = {{1{mdata_r[19]}},mdata_r};
             end
             2 : begin
-                mem13[address] <= mem13[address] + mdata_r;
-                h_new[address] <= 0;
+                mem13[address] = mem13[address] + {{1{mdata_r[19]}},mdata_r};
+                h_new = 0;
             end
             3 : begin
-                h_new[address>>5] <= x_data[address&31] ? 
-                    h_new[address>>5] + { {4{mdata_r[19]}}, mdata_r, 16'd0 } : 
-                    h_new[address>>5];
-            end
-            4 : begin
-                h_new[address] <= h_new[address] + { {4{mem13[address][19]}}, mem13[address], 16'd0 };
-                if (h_new[address] > 40'h0100000000) begin
-                    h_new[address] <= 40'h0100000000;
-                end
-                if (h_new[address] < -40'h0100000000) begin
-                    h_new[address] <= -40'h0100000000;
-                end
-                mdata_w_sig <= h_new[address][35:16];
-                h_old[address] <= h_new[address][35:16];
-                h_new[address] <= 0;
-                if(next_stage) begin
-                    t_count <= t_count-1;
-                    if(t_count==0)begin
-                        inited <= 0;
+                /*$display("%d %x %x %x %x",address,h_new,mdata_r,x_data[address] ? 
+                    $signed(h_new[`PREC-1:16]) + $signed(mdata_r) : 
+                    h_new[`PREC-1:16],x_data);*/
+                h_new[`PREC-1:16] = x_data[address] ? 
+                    $signed(h_new[`PREC-1:16]) + $signed(mdata_r) : 
+                    h_new[`PREC-1:16];
+                if(!address) begin
+                    h_new[`PREC-1:16] = $signed(h_new[`PREC-1:16]) + $signed(mem13[h_offset]);
+                    if ($signed(h_new) > $signed(40'h0100000000)) begin
+                        h_tmp[h_offset] = 20'h10000;
+                    end else if ($signed(h_new) < $signed(-40'h0100000000)) begin
+                        h_tmp[h_offset] = 20'hf0000;
+                    end else begin
+                        carry_bit = h_new[(`PREC-1)] ? (h_new[15] & (|h_new[14:0]) ) : h_new[15];
+                        h_tmp[h_offset] = h_new[35:16] + carry_bit;
                     end
-                end
-            end
-            5 : begin
-                h_new[address>>6] <= h_new[address>>6] + h_old[address&63] * mdata_r;
-            end
-            default: begin
-            end
-        endcase
-        stage <= stage + next_stage;
-        stage <= stage == 6 ? 3 : stage;
-        next_stage <= 0;
-        case (stage)
-            0 : begin
-                i_en_sig <= 1;
-                msel_sig <= 3'b100;
-                address <= 1;
-            end
-            1 : begin
-                i_en_sig <= 0;
-                msel_sig <= 3'b001;
-                if(address==0) begin
-                    address <= 64;
-                end
-            end
-            2 : begin
-                msel_sig <= 3'b011;
-                if(address==0) begin
-                    address <= 64;
-                end
-            end
-            3 : begin
-                msel_sig <= 3'b000;
-                if(address==0) begin
-                    address <= 2048;
+                    h_new = 0;
+                    //$display("h_new=0");
                 end
             end
             4 : begin
-                msel_sig <= 3'b101;
-                if(address==0) begin
-                    address <= 64;
+                if(h_offset==0) begin
+                    x_data = idata;
                 end
             end
             5 : begin
-                msel_sig <= 3'b010;
-                if(address==0) begin
-                    address <= 0; // 4096
-                end
+                h_new = h_new + $signed(h_old[address][17:0]) * $signed(mdata_r);
             end
             default: begin
             end
         endcase
-        address <= address - 1;
+        stage = stage + next_stage;
+        stage = stage == (5+(t_offset!=0)) ? 3 : stage;
+        next_stage = 0;
+        i_en_sig = 0;
+        //$display("%d %d %d %d",stage,t_offset,h_offset,address);
+        case (stage)
+            0 : begin
+                i_en_sig = 1;
+                msel_sig = 3'b100;
+                address = 0;
+                maddr_sig = address;
+            end
+            1 : begin
+                msel_sig = 3'b001;
+                address = address - 1;
+                maddr_sig = address;
+            end
+            2 : begin
+                msel_sig = 3'b011;
+                address = address - 1;
+                maddr_sig = address;
+            end
+            3 : begin
+                msel_sig = 3'b000;
+                address = (address - 1) & 31;
+                maddr_sig = {h_offset,address[4:0]};
+            end
+            4 : begin
+                msel_sig = 3'b101;
+                address = 0;
+                maddr_sig = {t_offset,h_offset};
+            end
+            5 : begin
+                msel_sig = 3'b010;
+                address = address - 1;
+                maddr_sig = {h_offset,address};
+                //$display("%d %d",h_offset,address);
+            end
+            default: begin
+            end
+        endcase
         if(address==0) begin
-            next_stage <= 1;
+            next_stage = 1;
+        end
+        if (stage==4) begin
+            mdata_w_sig = h_tmp[h_offset];
+            if($signed(h_offset)==-1) begin
+                i_en_sig = 1;
+                for (i = 0; i < 64; i = i + 1) begin
+                    h_old[i] = h_tmp[i];
+                end
+                if(t_count==t_offset) begin
+                    inited = 0;
+                end
+            end
+            h_offset = h_offset + 1;
+            if(h_offset==0) begin
+                t_offset = t_offset + 1;
+            end
         end
     end else begin
-        stage <= 0;
-        address <= 0;
-        mce_sig <= 0;
+        stage = 0;
+        address = 0;
+        t_offset = 0;
+        h_offset = 0;
+        //mce_sig = 0;
+        next_stage = 0;
     end
 end
 
