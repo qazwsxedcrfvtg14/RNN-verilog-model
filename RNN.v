@@ -20,8 +20,8 @@ integer i;
 
 reg signed [19:0] h_old[0:63];
 reg signed [19:0] h_tmp[0:63];
-reg signed [(`PREC-1):0] h_new,tmp,tmp2;
-reg signed [19:0] mul_00, mul_01, mul_10, mul_11;
+reg signed [(`PREC-1):0] h_new;
+reg signed [12:0] mul_00, mul_01, mul_02, mul_10, mul_11, mul_12, mul_20, mul_21, mul_22;
 reg [31:0] x_data;
 
 reg busy_sig;
@@ -82,44 +82,68 @@ always @(posedge clk ) begin
                 x_data = idata;
             end
             1 : begin
-                h_new = h_new + $signed(mul_00) + $signed({mul_01,9'd0}) + $signed({mul_10,9'd0}) + $signed({mul_11,18'd0});
-                carry_bit = h_new[(`PREC-1)] ? (h_new[15] & (|h_new[14:0]) ) : h_new[15];
-                h_new[`PREC-1:16] = h_new[`PREC-1:16] + $signed(mdata_r) + carry_bit;
-                h_new[15:0] = 0;
+                h_new = h_new +
+                    $signed(mul_00) +
+                    $signed({mul_01,6'd0}) + $signed({mul_10,6'd0}) +
+                    $signed({mul_02,12'd0}) + $signed({mul_11,12'd0}) + $signed({mul_20,12'd0}) +
+                    $signed({mul_12,18'd0}) + $signed({mul_21,18'd0}) +
+                    $signed({mul_22,24'd0});
+                h_new[`PREC-1:16] = h_new[`PREC-1:16] + $signed(mdata_r);
             end
             2 : begin
-                h_new[`PREC-1:16] = h_new[`PREC-1:16] + $signed(mdata_r);
-                mul_00 = 0;
-                mul_01 = 0;
-                mul_10 = 0;
-                mul_11 = 0;
-            end
-            3 : begin
                 h_new[`PREC-1:16] = x_data[address] ? 
                     $signed(h_new[`PREC-1:16]) + $signed(mdata_r) : 
                     h_new[`PREC-1:16];
                 if(!address) begin
-                    if ($signed(h_new[`PREC-1:16]) > $signed(20'h10000)) begin
-                        h_tmp[h_offset] = 20'h10000;
-                    end else if ($signed(h_new[`PREC-1:16]) < $signed(-20'h10000)) begin
-                        h_tmp[h_offset] = 20'hf0000;
-                    end else begin
-                        h_tmp[h_offset] = h_new[35:16];
-                    end
-                    h_new = 0;
+                    carry_bit = h_new[(`PREC-1)] ? (h_new[15] & (|h_new[14:0]) ) : h_new[15];
+                    h_new[`PREC-1:16] = h_new[`PREC-1:16] + carry_bit;
+                    h_new[15:0] = 0;
+                end
+            end
+            3 : begin
+                h_new[`PREC-1:16] = h_new[`PREC-1:16] + $signed(mdata_r);
+                if ($signed(h_new[`PREC-1:16]) > $signed(20'h10000)) begin
+                    h_tmp[h_offset] = 20'h10000;
+                end else if ($signed(h_new[`PREC-1:16]) < $signed(-20'h10000)) begin
+                    h_tmp[h_offset] = 20'hf0000;
+                end else begin
+                    h_tmp[h_offset] = h_new[35:16];
                 end
             end
             4 : begin
                 if(h_offset==0) begin
                     x_data = idata;
                 end
+                mul_00 = 0;
+                mul_01 = 0;
+                mul_02 = 0;
+                mul_10 = 0;
+                mul_11 = 0;
+                mul_12 = 0;
+                mul_20 = 0;
+                mul_21 = 0;
+                mul_22 = 0;
+                h_new = 0;
             end
             5 : begin
-                h_new = h_new + $signed(mul_00) + $signed({mul_01,9'd0}) + $signed({mul_10,9'd0}) + $signed({mul_11,18'd0});
-                mul_00 = $signed({1'd0,h_old[address][8:0]})*$signed({1'd0,mdata_r[8:0]});
-                mul_01 = $signed({1'd0,h_old[address][8:0]})*$signed(mdata_r[17:9]);
-                mul_10 = $signed(h_old[address][17:9])*$signed({1'd0,mdata_r[8:0]});
-                mul_11 = $signed(h_old[address][17:9])*$signed(mdata_r[17:9]);
+                h_new = h_new +
+                    $signed(mul_00) +
+                    $signed({mul_01,6'd0}) + $signed({mul_10,6'd0}) +
+                    $signed({mul_02,12'd0}) + $signed({mul_11,12'd0}) + $signed({mul_20,12'd0}) +
+                    $signed({mul_12,18'd0}) + $signed({mul_21,18'd0}) +
+                    $signed({mul_22,24'd0});
+
+                mul_00 = $signed({1'd0,h_old[address][5:0]})*$signed({1'd0,mdata_r[5:0]});
+                mul_01 = $signed({1'd0,h_old[address][5:0]})*$signed({1'd0,mdata_r[11:6]});
+                mul_02 = $signed({1'd0,h_old[address][5:0]})*$signed(mdata_r[17:12]);
+
+                mul_10 = $signed({1'd0,h_old[address][11:6]})*$signed({1'd0,mdata_r[5:0]});
+                mul_11 = $signed({1'd0,h_old[address][11:6]})*$signed({1'd0,mdata_r[11:6]});
+                mul_12 = $signed({1'd0,h_old[address][11:6]})*$signed(mdata_r[17:12]);
+                
+                mul_20 = $signed(h_old[address][17:12])*$signed({1'd0,mdata_r[5:0]});
+                mul_21 = $signed(h_old[address][17:12])*$signed({1'd0,mdata_r[11:6]});
+                mul_22 = $signed(h_old[address][17:12])*$signed(mdata_r[17:12]);
             end
             default: begin
             end
@@ -141,14 +165,14 @@ always @(posedge clk ) begin
                 maddr_sig = h_offset;
             end
             2 : begin
-                msel_sig = 3'b011;
-                address = 0;
-                maddr_sig = h_offset;
-            end
-            3 : begin
                 msel_sig = 3'b000;
                 address = (address - 1) & 31;
                 maddr_sig = {h_offset,address[4:0]};
+            end
+            3 : begin
+                msel_sig = 3'b011;
+                address = 0;
+                maddr_sig = h_offset;
             end
             4 : begin
                 msel_sig = 3'b101;
@@ -192,8 +216,13 @@ always @(posedge clk ) begin
         h_new = 0;
         mul_00 = 0;
         mul_01 = 0;
+        mul_02 = 0;
         mul_10 = 0;
         mul_11 = 0;
+        mul_12 = 0;
+        mul_20 = 0;
+        mul_21 = 0;
+        mul_22 = 0;
     end
 end
 
