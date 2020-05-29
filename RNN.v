@@ -39,7 +39,6 @@ reg inited;
 reg initmem;
 
 reg [2:0] stage;
-reg next_stage;
 reg [19:0] t_count;
 
 reg carry_bit;
@@ -171,9 +170,8 @@ always @(posedge clk ) begin
             default: begin
             end
         endcase
-        stage = stage + next_stage;
+        stage = stage + (address==0);
         stage = stage == (5+(t_offset!=0)) ? 1 : stage;
-        next_stage = 0;
         i_en_sig = 0;
         case (stage)
             0 : begin
@@ -201,6 +199,18 @@ always @(posedge clk ) begin
                 msel_sig = 3'b101;
                 address = 0;
                 maddr_sig = {t_offset,h_offset};
+                mdata_w_sig = h_tmp[h_offset];
+                if($signed(h_offset)==-1) begin
+                    i_en_sig = 1;
+                    for (i = 0; i < 64; i = i + 1) begin
+                        h_old[i] = h_tmp[i];
+                    end
+                    if(t_count==t_offset) begin
+                        inited = 0;
+                    end
+                end
+                h_offset = h_offset + 1;
+                t_offset = t_offset + (h_offset==0);
             end
             5 : begin
                 msel_sig = 3'b010;
@@ -210,32 +220,12 @@ always @(posedge clk ) begin
             default: begin
             end
         endcase
-        if(address==0) begin
-            next_stage = 1;
-        end
-        if (stage==4) begin
-            mdata_w_sig = h_tmp[h_offset];
-            if($signed(h_offset)==-1) begin
-                i_en_sig = 1;
-                for (i = 0; i < 64; i = i + 1) begin
-                    h_old[i] = h_tmp[i];
-                end
-                if(t_count==t_offset) begin
-                    inited = 0;
-                end
-            end
-            h_offset = h_offset + 1;
-            if(h_offset==0) begin
-                t_offset = t_offset + 1;
-            end
-        end
     end else begin
-        stage = 0;
+        stage = -1;
         address = 0;
         t_offset = 0;
         h_offset = 0;
         //mce_sig = 0;
-        next_stage = 0;
         h_new = 0;
         mul_00 = 0;
         mul_01 = 0;

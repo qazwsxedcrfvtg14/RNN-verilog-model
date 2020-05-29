@@ -1,7 +1,7 @@
 `timescale 1ns/10ps
-`define CYCLE      100.0                   // Modify your clock period here
+`define CYCLE      7.6                   // Modify your clock period here
 `define SDFFILE    "./syn/RNN_syn.sdf"	  // Modify your sdf file name
-`define End_CYCLE  100000000              // Modify cycle times once your design need more cycle times!
+`define End_CYCLE  10000000000              // Modify cycle times once your design need more cycle times!
 
 `define X_T            "./data/input1_hex.dat"                   // Modify your "data" directory path
 `define W_IH           "./data/weight_ih1_hex.dat"
@@ -69,9 +69,9 @@ RNN u_RNN(
 always begin #(`CYCLE/2) clk = ~clk; end
 
 initial begin
-	$fsdbDumpfile("RNN.fsdb");
-	$fsdbDumpvars;
-	$fsdbDumpMDA;
+	$dumpfile("RNN.vcd");
+	$dumpvars;
+	//$fsdbDumpMDA;
 end
 
 initial begin  // global control
