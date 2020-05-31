@@ -4,19 +4,19 @@
 Can you pass gate-level simulation? (yes/no)
 yes
 Cycle time that can pass your gate-level simulation: (ns)
-4
+7.2 (without Timing violation 7.6)
 Total simulation time: (ns)
-96706.9
+9232634.055 (without Timing violation in initialize: 9745558.055)
 Total cell area: 
-5092.199925
+193505.297446
 //================================//
 //    Transistor-level results    //
 //================================//
 Can you pass transistor-level simulation? (yes/no)
 yes
 Cycle time that can pass your transistor-level simulation: (ns)
-4
+6.3 (without Timing violation 6.5)
 Total simulation time: (ns)
-96706.9
+8078554.681 (without Timing violation in initialize: 8335016.714)
 Total area of core: 
-9028.199925
+203769.475
