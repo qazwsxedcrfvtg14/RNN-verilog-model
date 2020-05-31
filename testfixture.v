@@ -1,6 +1,6 @@
 `timescale 1ns/10ps
-`define CYCLE      7.6                   // Modify your clock period here
-`define SDFFILE    "./syn/RNN_syn.sdf"	  // Modify your sdf file name
+`define CYCLE      6.3                   // Modify your clock period here
+`define SDFFILE    "./layout/RNN_APR.sdf"	  // Modify your sdf file name
 `define End_CYCLE  10000000000              // Modify cycle times once your design need more cycle times!
 
 `define X_T            "./data/input1_hex.dat"                   // Modify your "data" directory path
