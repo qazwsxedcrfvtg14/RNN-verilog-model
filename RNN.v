@@ -99,12 +99,12 @@ always @(posedge clk ) begin
                 h_new[`PREC-1:16] = h_new[`PREC-1:16] + $signed(mdata_r);
             end
             2 : begin
-                h_new[`PREC-1:16] = x_data[address] ? 
+                h_new[`PREC-1:16] = x_data[address[4:0]] ? 
                     $signed(h_new[`PREC-1:16]) + $signed(mdata_r) : 
                     h_new[`PREC-1:16];
             end
             3 : begin
-                if(address==1)begin
+                if(address[0]==1)begin
                     carry_bit = h_new[(`PREC-1)] ? (h_new[15] & (|h_new[14:0]) ) : h_new[15];
                     h_new[`PREC-1:16] = h_new[`PREC-1:16] + $signed(mdata_r) + carry_bit;
                     if ((|h_new[`PREC-2:32])&!h_new[`PREC-1]) begin
@@ -200,9 +200,9 @@ always @(posedge clk ) begin
         case (stage)
             0 : begin
                 i_en_sig = 1;
-                msel_sig = 3'b100;
-                address = 0;
-                maddr_sig = address;
+                // msel_sig = 3'b100;
+                // address = 0;
+                // maddr_sig = 0;
             end
             1 : begin
                 msel_sig = 3'b001;
@@ -216,7 +216,7 @@ always @(posedge clk ) begin
             end
             3 : begin
                 msel_sig = 3'b011;
-                address = (address - 1) & 1;
+                address = address ^ 1;
                 maddr_sig = h_offset;
             end
             4 : begin
@@ -247,6 +247,8 @@ always @(posedge clk ) begin
     end else begin
         stage = -1;
         address = 0;
+        msel_sig = 3'b100;
+        maddr_sig = 0;
         t_offset = 0;
         h_offset = 0;
         //mce_sig = 0;
