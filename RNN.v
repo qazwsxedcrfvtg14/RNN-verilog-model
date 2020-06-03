@@ -44,7 +44,7 @@ reg inited;
 reg initmem;
 
 reg [2:0] stage;
-reg [19:0] t_count;
+reg [10:0] t_count;
 
 reg carry_bit;
 
@@ -75,11 +75,11 @@ assign maddr = maddr_sig;
 
 always @(posedge clk ) begin
     busy_sig = inited & !reset & (ready | busy_sig);
-    if (reset) begin
-        inited = 1;
-    end
     if (busy_sig) begin
         //mce_sig = 1;
+        if(t_count==t_offset) begin
+            inited = 0;
+        end
         case (stage)
             0 : begin
                 t_count = mdata_r;
@@ -224,13 +224,10 @@ always @(posedge clk ) begin
                 address = 0;
                 maddr_sig = {t_offset,h_offset};
                 mdata_w_sig = h_tmp[h_offset];
-                if($signed(h_offset)==-1) begin
+                if((&h_offset)) begin
                     i_en_sig = 1;
                     for (i = 0; i < 64; i = i + 1) begin
                         h_old[i] = h_tmp[i];
-                    end
-                    if(t_count==t_offset) begin
-                        inited = 0;
                     end
                 end
                 h_offset = h_offset + 1;
@@ -244,7 +241,10 @@ always @(posedge clk ) begin
             default: begin
             end
         endcase
-    end else begin
+    end 
+    if (reset) begin
+        inited = 1;
+        t_count = -1;
         stage = -1;
         address = 0;
         msel_sig = 3'b100;

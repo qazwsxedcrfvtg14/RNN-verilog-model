@@ -14,52 +14,28 @@
 4. activation function
     * 把乘法壓低後，critical path 就變成了計算 activation function 到傳出結果到 mdata_w 的這段，因為這段只有半個 cycle 的時間可以運算(其它的運算都是在下次的 posedge 前能計算出結果就好，但是送出的資料則必須要在 negedge 前計算完成)，因此把 activation function 跟送出的部分拆開成兩個階段，雖然會讓總 cycle 數量多大約1%，卻可以讓 cycle time 繼續往下壓，因此這也是個好的優化。
 5. 合成 Cycle time
-    * Gate-Level: $4.6$ $ns$
-    * Transistor-Level: $5.0$ $ns$
-6. Timing violation
-    * 目前觀察到一件特別的事情就是，合成的時候使用的 cycle time 可以成功合成出來，並且不會有在 design compiler 跟 innovus 中不會出現 violation，但是在 simulation 時就必須把 cycle time 放寬，才能成功模擬。並且還有個特殊的現象是，cycle time 往下調到某個範圍的時候，會在 ncverilog 會在 reset 的階段出現 Timing violation，但是最後還是能正確的模擬出結果。不過當 cycle time 在進一步往下調的時候就會出錯了。
-7. 結果
-    * Gate-level without Timing violation
-        * Can you pass gate-level simulation?
-            * yes
-        * Cycle time that can pass your gate-level simulation:
-            * $7.6$ $ns$
-        * Total simulation time:
-            * $9745558.055$ $ns$
-        * Total cell area: 
-            * $193505.297446$ $\mu{m^2}$
-        * Cell area $\times$ Simulation time: 
-            * $1885817110210.0364$ $\mu{m^2}\cdot{ns}$
-    * Transistor-level without Timing violation
-        * Can you pass gate-level simulation?
-            * yes
-        * Cycle time that can pass your gate-level simulation:
-            * $6.5$ $ns$
-        * Total simulation time:
-            * $8335016.681$ $ns$
-        * Total cell area: 
-            * $203769.475$ $\mu{m^2}$
-        * Cell area $\times$ Simulation time: 
-            * $1698421973203.6125$ $\mu{m^2}\cdot{ns}$
+    * Gate-Level: $4.5$ $ns$
+    * Transistor-Level: $4.5$ $ns$
+6. 結果
     * Gate-level results
         * Can you pass gate-level simulation?
             * yes
         * Cycle time that can pass your gate-level simulation:
-            * $7.2$ $ns$ 
+            * $4.5$ $ns$ 
         * Total simulation time:
-            * $9232634.055$ $ns$
+            * $5741605.030$ $ns$
         * Total cell area: 
-            * $193505.297446$ $\mu{m^2}$
+            * $192980.800955$ $\mu{m^2}$
         * Cell area $\times$ Simulation time: 
-            * $1786563599022.8442$ $\mu{m^2}\cdot{ns}$
+            * $1108019537456.657$ $\mu{m^2}\cdot{ns}$
     * Transistor-level results
         * Can you pass gate-level simulation?
             * yes
-        * Cycle time that can pass your gate-level simulation:
-            * $6.3$ $ns$ 
+        * Cycle time that can pass your transistor-level simulation:
+            * $4.5$ $ns$ 
         * Total simulation time:
-            * $8078554.681$ $ns$
+            * $5741604.937$ $ns$
         * Total cell area: 
-            * $203769.475$ $\mu{m^2}$
+            * $214537.781$ $\mu{m^2}$
         * Cell area $\times$ Simulation time: 
-            * $1646162846106.1626$ $\mu{m^2}\cdot{ns}$
+            * $1231791182562.6248$ $\mu{m^2}\cdot{ns}$
