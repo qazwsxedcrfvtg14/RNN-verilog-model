@@ -6,7 +6,7 @@ yes
 Cycle time that can pass your gate-level simulation: (ns)
 4.5
 Total simulation time: (ns)
-5741604.937
+5741605.030
 Total cell area: 
 192980.800955
 //================================//
