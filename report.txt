@@ -15,8 +15,8 @@ Total cell area:
 Can you pass transistor-level simulation? (yes/no)
 yes
 Cycle time that can pass your transistor-level simulation: (ns)
-4.5
+3.9
 Total simulation time: (ns)
-5741604.937
+4976057.737
 Total area of core: 
 214537.781

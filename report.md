@@ -29,13 +29,13 @@
         * Cell area $\times$ Simulation time: 
             * $1108019537456.657$ $\mu{m^2}\cdot{ns}$
     * Transistor-level results
-        * Can you pass gate-level simulation?
+        * Can you pass transistor-level simulation?
             * yes
         * Cycle time that can pass your transistor-level simulation:
-            * $4.5$ $ns$ 
+            * $3.9$ $ns$ 
         * Total simulation time:
-            * $5741604.937$ $ns$
+            * $4976057.737$ $ns$
         * Total cell area: 
             * $214537.781$ $\mu{m^2}$
         * Cell area $\times$ Simulation time: 
-            * $1231791182562.6248$ $\mu{m^2}\cdot{ns}$
+            * $1067552385023.8615$ $\mu{m^2}\cdot{ns}$
