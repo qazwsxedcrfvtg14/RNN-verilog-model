@@ -166,31 +166,31 @@ always @(posedge clk ) begin
                 mul_01 = $signed({1'd0,h_old[address][3:0]})*$signed({1'd0,mdata_r[7:4]});
                 mul_02 = $signed({1'd0,h_old[address][3:0]})*$signed({1'd0,mdata_r[11:8]});
                 mul_03 = $signed({1'd0,h_old[address][3:0]})*$signed({1'd0,mdata_r[15:12]});
-                mul_04 = $signed({1'd0,h_old[address][3:0]})*$signed(mdata_r[PREC2-1:16]);
+                mul_04 = $signed({1'd0,h_old[address][3:0]})*$signed(mdata_r[`PREC2-1:16]);
 
                 mul_10 = $signed({1'd0,h_old[address][7:4]})*$signed({1'd0,mdata_r[3:0]});
                 mul_11 = $signed({1'd0,h_old[address][7:4]})*$signed({1'd0,mdata_r[7:4]});
                 mul_12 = $signed({1'd0,h_old[address][7:4]})*$signed({1'd0,mdata_r[11:8]});
                 mul_13 = $signed({1'd0,h_old[address][7:4]})*$signed({1'd0,mdata_r[15:12]});
-                mul_14 = $signed({1'd0,h_old[address][7:4]})*$signed(mdata_r[PREC2-1:16]);
+                mul_14 = $signed({1'd0,h_old[address][7:4]})*$signed(mdata_r[`PREC2-1:16]);
 
                 mul_20 = $signed({1'd0,h_old[address][11:8]})*$signed({1'd0,mdata_r[3:0]});
                 mul_21 = $signed({1'd0,h_old[address][11:8]})*$signed({1'd0,mdata_r[7:4]});
                 mul_22 = $signed({1'd0,h_old[address][11:8]})*$signed({1'd0,mdata_r[11:8]});
                 mul_23 = $signed({1'd0,h_old[address][11:8]})*$signed({1'd0,mdata_r[15:12]});
-                mul_24 = $signed({1'd0,h_old[address][11:8]})*$signed(mdata_r[PREC2-1:16]);
+                mul_24 = $signed({1'd0,h_old[address][11:8]})*$signed(mdata_r[`PREC2-1:16]);
 
                 mul_30 = $signed({1'd0,h_old[address][15:12]})*$signed({1'd0,mdata_r[3:0]});
                 mul_31 = $signed({1'd0,h_old[address][15:12]})*$signed({1'd0,mdata_r[7:4]});
                 mul_32 = $signed({1'd0,h_old[address][15:12]})*$signed({1'd0,mdata_r[11:8]});
                 mul_33 = $signed({1'd0,h_old[address][15:12]})*$signed({1'd0,mdata_r[15:12]});
-                mul_34 = $signed({1'd0,h_old[address][15:12]})*$signed(mdata_r[PREC2-1:16]);
+                mul_34 = $signed({1'd0,h_old[address][15:12]})*$signed(mdata_r[`PREC2-1:16]);
                 
-                mul_40 = $signed(h_old[address][PREC2-1:16])*$signed({1'd0,mdata_r[3:0]});
-                mul_41 = $signed(h_old[address][PREC2-1:16])*$signed({1'd0,mdata_r[7:4]});
-                mul_42 = $signed(h_old[address][PREC2-1:16])*$signed({1'd0,mdata_r[11:8]});
-                mul_43 = $signed(h_old[address][PREC2-1:16])*$signed({1'd0,mdata_r[15:12]});
-                mul_44 = $signed(h_old[address][PREC2-1:16])*$signed(mdata_r[PREC2-1:16]);
+                mul_40 = $signed(h_old[address][`PREC2-1:16])*$signed({1'd0,mdata_r[3:0]});
+                mul_41 = $signed(h_old[address][`PREC2-1:16])*$signed({1'd0,mdata_r[7:4]});
+                mul_42 = $signed(h_old[address][`PREC2-1:16])*$signed({1'd0,mdata_r[11:8]});
+                mul_43 = $signed(h_old[address][`PREC2-1:16])*$signed({1'd0,mdata_r[15:12]});
+                mul_44 = $signed(h_old[address][`PREC2-1:16])*$signed(mdata_r[`PREC2-1:16]);
             end
             default: begin
             end
