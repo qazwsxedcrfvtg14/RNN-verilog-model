@@ -17,6 +17,6 @@ yes
 Cycle time that can pass your transistor-level simulation: (ns)
 3.9
 Total simulation time: (ns)
-4976057.737
+4976057.763
 Total area of core: 
-214537.781
+214514.017

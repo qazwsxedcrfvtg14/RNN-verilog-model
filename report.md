@@ -16,6 +16,8 @@
 5. 合成 Cycle time
     * Gate-Level: $4.5$ $ns$
     * Transistor-Level: $4.5$ $ns$
+      * Ratio: 1.5
+      * Density: 0.9
 6. 結果
     * Gate-level results
         * Can you pass gate-level simulation?
@@ -34,8 +36,40 @@
         * Cycle time that can pass your transistor-level simulation:
             * $3.9$ $ns$ 
         * Total simulation time:
-            * $4976057.737$ $ns$
+            * $4976057.763$ $ns$
         * Total cell area: 
-            * $214537.781$ $\mu{m^2}$
+            * $214514.017$ $\mu{m^2}$
         * Cell area $\times$ Simulation time: 
-            * $1067552385023.8615$ $\mu{m^2}\cdot{ns}$
+            * $1067434139565.164$ $\mu{m^2}\cdot{ns}$
+7. 截圖
+    * RTL Pass
+     ![_](imgs/註解%202020-06-09%20163722.png)
+    * Gate-level Area Report
+     ![_](imgs/註解%202020-06-09%20164121.png)
+    * Gate-level Timing Report
+     ![_](imgs/註解%202020-06-09%20164147.png)
+    * Gate-level Pass
+     ![_](imgs/註解%202020-06-09%20165844.png)
+    * Transistor-level Floorplan
+     ![_](imgs/註解%202020-06-09%20222803.png)
+     ![_](imgs/註解%202020-06-09%20222827.png)
+    * Transistor-level Full placement
+     ![_](imgs/註解%202020-06-09%20222941.png)
+     ![_](imgs/註解%202020-06-09%20223010.png)
+     ![_](imgs/註解%202020-06-09%20223131.png)
+    * Transistor-level Power Ring
+     ![_](imgs/註解%202020-06-09%20223257.png)
+    * Transistor-level Power Stripe
+     ![_](imgs/註解%202020-06-09%20223557.png)
+     ![_](imgs/註解%202020-06-09%20224046.png)
+     ![_](imgs/註解%202020-06-09%20224123.png)
+    * Transistor-level Special Route
+     ![_](imgs/註解%202020-06-09%20224211.png)
+     ![_](imgs/註解%202020-06-09%20224304.png)
+     ![_](imgs/註解%202020-06-09%20224538.png)
+    * Transistor-level Nano Route
+     ![_](imgs/註解%202020-06-09%20224555.png)
+     ![_](imgs/註解%202020-06-09%20225030.png)
+     ![_](imgs/註解%202020-06-09%20225103.png)
+    * Transistor-level Pass
+     ![_](imgs/註解%202020-06-09%20235414.png)
