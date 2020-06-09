@@ -14,14 +14,16 @@ output    [2:0] msel;
 // Please DO NOT modified the I/O signal
 // TODO
 
-`define PREC 36
-`define PREC2 18
+`define PREC  36 // 36->44  // Size before tanh
+`define PREC2 18 // 18->20  // Size of input param
+`define PREC3 20 // 20->18  // Size after tanh
+// `define EXTENDINPUT  // define this if PREC != 36
 
 integer i;
 
-reg signed [19:0] h_old[0:63];
-reg signed [19:0] h_tmp[0:63], tmp;
-reg signed [(`PREC-1):0] h_new;
+reg signed [`PREC3-1:0] h_old[0:63];
+reg signed [`PREC3-1:0] h_tmp[0:63], tmp;
+reg signed [`PREC-1:0] h_new;
 reg signed [8:0] 
     mul_00, mul_01, mul_02, mul_03, mul_04,
     mul_10, mul_11, mul_12, mul_13, mul_14,
@@ -97,17 +99,29 @@ always @(posedge clk ) begin
                     $signed({mul_24,24'd0}) + $signed({mul_33,24'd0}) + $signed({mul_42,24'd0}) +
                     $signed({mul_34,28'd0}) + $signed({mul_43,28'd0}) +
                     $signed({mul_44,32'd0});
+`ifdef EXTENDINPUT
+                h_new[`PREC-1:16] = h_new[`PREC-1:16] + $signed({{(`PREC-36){mdata_r[19]}},mdata_r});
+`else
                 h_new[`PREC-1:16] = h_new[`PREC-1:16] + $signed(mdata_r);
+`endif
             end
             2 : begin
                 h_new[`PREC-1:16] = x_data[address[4:0]] ? 
+`ifdef EXTENDINPUT
+                    $signed(h_new[`PREC-1:16]) + $signed({{(`PREC-36){mdata_r[19]}},mdata_r}) : 
+`else
                     $signed(h_new[`PREC-1:16]) + $signed(mdata_r) : 
+`endif
                     h_new[`PREC-1:16];
             end
             3 : begin
                 if(address[0]==1)begin
                     carry_bit = h_new[(`PREC-1)] ? (h_new[15] & (|h_new[14:0]) ) : h_new[15];
+`ifdef EXTENDINPUT
+                    h_new[`PREC-1:16] = h_new[`PREC-1:16] + $signed({{(`PREC-36){mdata_r[19]}},mdata_r}) + carry_bit;
+`else
                     h_new[`PREC-1:16] = h_new[`PREC-1:16] + $signed(mdata_r) + carry_bit;
+`endif
                     if ((|h_new[`PREC-2:32])&!h_new[`PREC-1]) begin
                         tmp = 20'h10000;
                     end else if ((|(~h_new[`PREC-2:32]))&h_new[`PREC-1]) begin
@@ -186,11 +200,11 @@ always @(posedge clk ) begin
                 mul_33 = $signed({1'd0,h_old[address][15:12]})*$signed({1'd0,mdata_r[15:12]});
                 mul_34 = $signed({1'd0,h_old[address][15:12]})*$signed(mdata_r[`PREC2-1:16]);
                 
-                mul_40 = $signed(h_old[address][`PREC2-1:16])*$signed({1'd0,mdata_r[3:0]});
-                mul_41 = $signed(h_old[address][`PREC2-1:16])*$signed({1'd0,mdata_r[7:4]});
-                mul_42 = $signed(h_old[address][`PREC2-1:16])*$signed({1'd0,mdata_r[11:8]});
-                mul_43 = $signed(h_old[address][`PREC2-1:16])*$signed({1'd0,mdata_r[15:12]});
-                mul_44 = $signed(h_old[address][`PREC2-1:16])*$signed(mdata_r[`PREC2-1:16]);
+                mul_40 = $signed(h_old[address][17:16])*$signed({1'd0,mdata_r[3:0]});
+                mul_41 = $signed(h_old[address][17:16])*$signed({1'd0,mdata_r[7:4]});
+                mul_42 = $signed(h_old[address][17:16])*$signed({1'd0,mdata_r[11:8]});
+                mul_43 = $signed(h_old[address][17:16])*$signed({1'd0,mdata_r[15:12]});
+                mul_44 = $signed(h_old[address][17:16])*$signed(mdata_r[`PREC2-1:16]);
             end
             default: begin
             end
