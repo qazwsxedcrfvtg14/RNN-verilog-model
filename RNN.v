@@ -14,10 +14,9 @@ output    [2:0] msel;
 // Please DO NOT modified the I/O signal
 // TODO
 
-`define PREC  36 // 36->44  // Size before tanh
-`define PREC2 18 // 18->20  // Size of input param
-`define PREC3 20 // 20->18  // Size after tanh
-// `define EXTENDINPUT  // define this if PREC != 36
+`define PREC  43 // 36->43  // Size before tanh
+`define PREC2 20 // 18->20  // Size of input param
+`define PREC3 18 // 20->18  // Size after tanh
 
 integer i;
 
@@ -52,7 +51,7 @@ reg [10:0] t_count;
 reg carry_bit;
 
 
-//reg signed [39:0] mul_tmp;
+// reg signed [39:0] mul_tmp;
 
 // base area: X = 500
 
@@ -99,29 +98,19 @@ always @(posedge clk ) begin
                     $signed({mul_24,24'd0}) + $signed({mul_33,24'd0}) + $signed({mul_42,24'd0}) +
                     $signed({mul_34,28'd0}) + $signed({mul_43,28'd0}) +
                     $signed({mul_44,32'd0});
-`ifdef EXTENDINPUT
-                h_new[`PREC-1:16] = h_new[`PREC-1:16] + $signed({{(`PREC-36){mdata_r[19]}},mdata_r});
-`else
-                h_new[`PREC-1:16] = h_new[`PREC-1:16] + $signed(mdata_r);
-`endif
+                h_new[`PREC-1:16] = h_new[`PREC-1:16] + ({{(`PREC-36){mdata_r[19]}},mdata_r});
             end
             2 : begin
                 h_new[`PREC-1:16] = x_data[address[4:0]] ? 
-`ifdef EXTENDINPUT
-                    $signed(h_new[`PREC-1:16]) + $signed({{(`PREC-36){mdata_r[19]}},mdata_r}) : 
-`else
-                    $signed(h_new[`PREC-1:16]) + $signed(mdata_r) : 
-`endif
+                    h_new[`PREC-1:16] + ({{(`PREC-36){mdata_r[19]}},mdata_r}) : 
                     h_new[`PREC-1:16];
             end
             3 : begin
                 if(address[0]==1)begin
+                    h_new[`PREC-1:16] = h_new[`PREC-1:16] + ({{(`PREC-36){mdata_r[19]}},mdata_r});
                     carry_bit = h_new[(`PREC-1)] ? (h_new[15] & (|h_new[14:0]) ) : h_new[15];
-`ifdef EXTENDINPUT
-                    h_new[`PREC-1:16] = h_new[`PREC-1:16] + $signed({{(`PREC-36){mdata_r[19]}},mdata_r}) + carry_bit;
-`else
-                    h_new[`PREC-1:16] = h_new[`PREC-1:16] + $signed(mdata_r) + carry_bit;
-`endif
+                end else begin
+                    h_new[`PREC-1:16] = h_new[`PREC-1:16] + carry_bit;
                     if ((|h_new[`PREC-2:32])&!h_new[`PREC-1]) begin
                         tmp = 20'h10000;
                     end else if ((|(~h_new[`PREC-2:32]))&h_new[`PREC-1]) begin
@@ -129,8 +118,6 @@ always @(posedge clk ) begin
                     end else begin
                         tmp = h_new[35:16];
                     end
-                end else begin
-                    h_tmp[h_offset] = tmp;
                 end
             end
             4 : begin
@@ -238,6 +225,7 @@ always @(posedge clk ) begin
                 msel_sig = 3'b101;
                 address = 0;
                 maddr_sig = {t_offset,h_offset};
+                h_tmp[h_offset] = tmp;
                 mdata_w_sig = h_tmp[h_offset];
                 if((&h_offset)) begin
                     i_en_sig = 1;
