@@ -1,7 +1,7 @@
 # You can only modify clock period 
 
 
-set cycle 4.5
+set cycle 4.2
 
 set t_in [expr $cycle/2]
 set t_out  0.5 
