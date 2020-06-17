@@ -24,7 +24,8 @@ integer i;
 
 reg signed [`PREC3-1:0] h_old[0:63];
 reg signed [`PREC3-1:0] h_tmp[0:62], tmp;
-reg signed [`PREC-1:0] h_new;
+reg signed [`PREC-1:0] h_new, h_add;
+reg signed [`PREC-1-16:0] h_new_tmp;
 reg signed [`PREC4-1:0] mul_tmp;
 reg start_mul_sum1;
 reg start_mul_sum2;
@@ -123,6 +124,9 @@ always @(posedge clk ) begin
     mul_44 <= $signed(h_old[address][17:16])*$signed(mdata_r[`PREC2-1:16]);
     
     carry_bit <= h_new[15];
+
+    h_new <= h_new + h_add;
+    h_add <= 0;
     
     if (busy_sig) begin
         //mce_sig = 1;
@@ -136,42 +140,44 @@ always @(posedge clk ) begin
             end
             1 : begin
                 if(start_mul_sum2) begin
-                    h_new = h_new + mul_tmp;
+                    h_add <= mul_tmp + $signed({{(`PREC-36){mdata_r[19]}},mdata_r,16'd0});
+                end else begin
+                    h_add <= $signed({{(`PREC-36){mdata_r[19]}},mdata_r,16'd0});
                 end
-                h_new[`PREC-1:16] = h_new[`PREC-1:16] + ({{(`PREC-36){mdata_r[19]}},mdata_r});
             end
             2 : begin
                 if(start_mul_sum2) begin
-                    h_new = h_new + mul_tmp;
+                    h_add <= mul_tmp + $signed({{(`PREC-36){mdata_r[19]}},mdata_r,16'd0});
+                end else begin
+                    h_add <= $signed({{(`PREC-36){mdata_r[19]}},mdata_r,16'd0});
                 end
-                h_new[`PREC-1:16] = h_new[`PREC-1:16] + ({{(`PREC-36){mdata_r[19]}},mdata_r});
             end
             3 : begin
-                h_new[`PREC-1:16] = x_data[address[4:0]] ? 
-                    h_new[`PREC-1:16] + ({{(`PREC-36){mdata_r[19]}},mdata_r}) : 
-                    h_new[`PREC-1:16];
+                if (x_data[address[4:0]]) begin
+                    h_add <= $signed({{(`PREC-36){mdata_r[19]}},mdata_r,16'd0});
+                end
             end
             4 : begin
-                h_new[`PREC-1:16] = h_new[`PREC-1:16] + carry_bit;
-                if ((|h_new[`PREC-2:32])&!h_new[`PREC-1]) begin
+                h_new_tmp = h_new[`PREC-1:16] + h_add[`PREC-1:16] + carry_bit;
+                if ((|h_new_tmp[`PREC-2-16:16])&!h_new_tmp[`PREC-1-16]) begin
                     tmp = 20'h10000;
-                end else if ((|(~h_new[`PREC-2:32]))&h_new[`PREC-1]) begin
+                end else if ((|(~h_new_tmp[`PREC-2-16:16]))&h_new_tmp[`PREC-1-16]) begin
                     tmp = 20'hf0000;
                 end else begin
-                    tmp = h_new[35:16];
+                    tmp = h_new_tmp[19:0];
                 end
             end
             5 : begin
                 if(h_offset==0) begin
                     x_data = idata;
                 end
-                h_new = 0;
+                h_new <= 0;
                 start_mul_sum1 = 0;
                 start_mul_sum2 = 0;
             end
             6 : begin
                 if (start_mul_sum2) begin
-                    h_new = h_new + mul_tmp;
+                    h_add <= mul_tmp;
                 end else if (start_mul_sum1) begin
                     start_mul_sum2 = 1;
                 end else begin
@@ -248,7 +254,7 @@ always @(posedge clk ) begin
         t_offset = 0;
         h_offset = 0;
         //mce_sig = 0;
-        h_new = 0;
+        h_new <= 0;
         start_mul_sum2 = 0;
     end
     
