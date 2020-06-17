@@ -49,7 +49,6 @@ reg [10:0] t_offset;
 reg [5:0] h_offset;
 
 reg inited;
-reg initmem;
 
 reg [2:0] stage;
 reg [10:0] t_count;
