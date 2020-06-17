@@ -1,5 +1,5 @@
 `timescale 1ns/10ps
-`define CYCLE      6.3                   // Modify your clock period here
+`define CYCLE      3.8                   // Modify your clock period here
 `define SDFFILE    "./layout/RNN_APR.sdf"	  // Modify your sdf file name
 `define End_CYCLE  10000000000              // Modify cycle times once your design need more cycle times!
 

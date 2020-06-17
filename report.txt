@@ -4,19 +4,19 @@
 Can you pass gate-level simulation? (yes/no)
 yes
 Cycle time that can pass your gate-level simulation: (ns)
-4.2
+3.8
 Total simulation time: (ns)
-5358831.281
+4848466.532
 Total cell area: 
-218813.531461
+169135.726395
 //================================//
 //    Transistor-level results    //
 //================================//
 Can you pass transistor-level simulation? (yes/no)
 yes
 Cycle time that can pass your transistor-level simulation: (ns)
-4.2
+3.8
 Total simulation time: (ns)
-5358831.358
+4848466.528
 Total area of core: 
-243247.604
+188070.223
