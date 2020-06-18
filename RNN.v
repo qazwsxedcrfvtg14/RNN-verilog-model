@@ -33,8 +33,6 @@ reg signed [38:0] adder_20;
 reg signed [19:0] add_data;
 reg signed [`PREC-1-16:0] h_new_tmp;
 reg signed [`PREC4-1:0] mul_tmp, mul_tmp1, mul_tmp2, mul_tmp3;
-reg start_mul_sum1;
-reg start_mul_sum2;
 reg mul_on;
 reg [8:0] single;
 reg [8:0] double;
@@ -190,8 +188,6 @@ always @(posedge clk ) begin
                     h_old[63] = tmp;
                 end
                 h_new <= 0;
-                start_mul_sum1 = 0;
-                start_mul_sum2 = 0;
             end
             6 : begin
             end
@@ -264,7 +260,6 @@ always @(posedge clk ) begin
         h_offset = 0;
         //mce_sig = 0;
         h_new <= 0;
-        start_mul_sum2 = 0;
         mul_on = 0;
     end
     
