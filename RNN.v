@@ -26,15 +26,14 @@ reg signed [`PREC3-1:0] h_old[0:63];
 reg signed [`PREC3-1:0] h_tmp[0:62], tmp;
 reg signed [`PREC-1:0] h_new, h_add;
 reg signed [`PREC-1-16:0] h_new_tmp;
-reg signed [`PREC4-1:0] mul_tmp;
+reg signed [`PREC4-1:0] mul_tmp, mul_tmp1, mul_tmp2, mul_tmp3;
 reg start_mul_sum1;
 reg start_mul_sum2;
-reg signed [8:0] 
-    mul_00, mul_01, mul_02, mul_03, mul_04,
-    mul_10, mul_11, mul_12, mul_13, mul_14,
-    mul_20, mul_21, mul_22, mul_23, mul_24,
-    mul_30, mul_31, mul_32, mul_33, mul_34,
-    mul_40, mul_41, mul_42, mul_43, mul_44;
+reg [8:0] single;
+reg [8:0] double;
+reg [8:0] neg;
+reg signed [19:0] mul_data;
+
 reg [31:0] x_data;
 
 reg busy_sig;
@@ -82,45 +81,53 @@ assign maddr = maddr_sig;
 always @(posedge clk ) begin
     busy_sig = inited & !reset & (ready | busy_sig);
     
-    mul_tmp <= $signed(mul_00) +
-                $signed({mul_01,4'd0}) + $signed({mul_10,4'd0}) +
-                $signed({mul_02,8'd0}) + $signed({mul_11,8'd0}) + $signed({mul_20,8'd0}) +
-                $signed({mul_03,12'd0}) + $signed({mul_12,12'd0}) + $signed({mul_21,12'd0}) + $signed({mul_30,12'd0}) +
-                $signed({mul_04,16'd0}) + $signed({mul_13,16'd0}) + $signed({mul_22,16'd0}) + $signed({mul_31,16'd0}) + $signed({mul_40,16'd0}) +
-                $signed({mul_14,20'd0}) + $signed({mul_23,20'd0}) + $signed({mul_32,20'd0}) + $signed({mul_41,20'd0}) +
-                $signed({mul_24,24'd0}) + $signed({mul_33,24'd0}) + $signed({mul_42,24'd0}) +
-                $signed({mul_34,28'd0}) + $signed({mul_43,28'd0}) +
-                $signed({mul_44,32'd0});
-
-    mul_00 <= $signed({1'd0,h_old[address][3:0]})*$signed({1'd0,mdata_r[3:0]});
-    mul_01 <= $signed({1'd0,h_old[address][3:0]})*$signed({1'd0,mdata_r[7:4]});
-    mul_02 <= $signed({1'd0,h_old[address][3:0]})*$signed({1'd0,mdata_r[11:8]});
-    mul_03 <= $signed({1'd0,h_old[address][3:0]})*$signed({1'd0,mdata_r[15:12]});
-    mul_04 <= $signed({1'd0,h_old[address][3:0]})*$signed(mdata_r[`PREC2-1:16]);
-
-    mul_10 <= $signed({1'd0,h_old[address][7:4]})*$signed({1'd0,mdata_r[3:0]});
-    mul_11 <= $signed({1'd0,h_old[address][7:4]})*$signed({1'd0,mdata_r[7:4]});
-    mul_12 <= $signed({1'd0,h_old[address][7:4]})*$signed({1'd0,mdata_r[11:8]});
-    mul_13 <= $signed({1'd0,h_old[address][7:4]})*$signed({1'd0,mdata_r[15:12]});
-    mul_14 <= $signed({1'd0,h_old[address][7:4]})*$signed(mdata_r[`PREC2-1:16]);
-
-    mul_20 <= $signed({1'd0,h_old[address][11:8]})*$signed({1'd0,mdata_r[3:0]});
-    mul_21 <= $signed({1'd0,h_old[address][11:8]})*$signed({1'd0,mdata_r[7:4]});
-    mul_22 <= $signed({1'd0,h_old[address][11:8]})*$signed({1'd0,mdata_r[11:8]});
-    mul_23 <= $signed({1'd0,h_old[address][11:8]})*$signed({1'd0,mdata_r[15:12]});
-    mul_24 <= $signed({1'd0,h_old[address][11:8]})*$signed(mdata_r[`PREC2-1:16]);
-
-    mul_30 <= $signed({1'd0,h_old[address][15:12]})*$signed({1'd0,mdata_r[3:0]});
-    mul_31 <= $signed({1'd0,h_old[address][15:12]})*$signed({1'd0,mdata_r[7:4]});
-    mul_32 <= $signed({1'd0,h_old[address][15:12]})*$signed({1'd0,mdata_r[11:8]});
-    mul_33 <= $signed({1'd0,h_old[address][15:12]})*$signed({1'd0,mdata_r[15:12]});
-    mul_34 <= $signed({1'd0,h_old[address][15:12]})*$signed(mdata_r[`PREC2-1:16]);
+    mul_tmp = mul_tmp1 + $signed({mul_tmp2,6'd0}) + $signed({mul_tmp3,12'd0});
     
-    mul_40 <= $signed(h_old[address][17:16])*$signed({1'd0,mdata_r[3:0]});
-    mul_41 <= $signed(h_old[address][17:16])*$signed({1'd0,mdata_r[7:4]});
-    mul_42 <= $signed(h_old[address][17:16])*$signed({1'd0,mdata_r[11:8]});
-    mul_43 <= $signed(h_old[address][17:16])*$signed({1'd0,mdata_r[15:12]});
-    mul_44 <= $signed(h_old[address][17:16])*$signed(mdata_r[`PREC2-1:16]);
+    mul_tmp1 <=
+        (single[0] ? $signed({(neg[0]?-mul_data:mul_data)     }) : double[0] ? $signed({(neg[0]?-mul_data:mul_data),1'd0}) : $signed(0) ) +
+        (single[1] ? $signed({(neg[1]?-mul_data:mul_data),2'd0}) : double[1] ? $signed({(neg[1]?-mul_data:mul_data),3'd0}) : $signed(0) ) +
+        (single[2] ? $signed({(neg[2]?-mul_data:mul_data),4'd0}) : double[2] ? $signed({(neg[2]?-mul_data:mul_data),5'd0}) : $signed(0) ) ;
+    mul_tmp2 <=
+        (single[3] ? $signed({(neg[3]?-mul_data:mul_data)     }) : double[3] ? $signed({(neg[3]?-mul_data:mul_data),1'd0}) : $signed(0) ) +
+        (single[4] ? $signed({(neg[4]?-mul_data:mul_data),2'd0}) : double[4] ? $signed({(neg[4]?-mul_data:mul_data),3'd0}) : $signed(0) ) +
+        (single[5] ? $signed({(neg[5]?-mul_data:mul_data),4'd0}) : double[5] ? $signed({(neg[5]?-mul_data:mul_data),5'd0}) : $signed(0) ) ;
+    mul_tmp3 <=
+        (single[6] ? $signed({(neg[6]?-mul_data:mul_data)     }) : double[6] ? $signed({(neg[6]?-mul_data:mul_data),1'd0}) : $signed(0) ) +
+        (single[7] ? $signed({(neg[7]?-mul_data:mul_data),2'd0}) : double[7] ? $signed({(neg[7]?-mul_data:mul_data),3'd0}) : $signed(0) ) +
+        (single[8] ? $signed({(neg[8]?-mul_data:mul_data),4'd0}) : double[8] ? $signed({(neg[8]?-mul_data:mul_data),5'd0}) : $signed(0) ) ;
+
+    neg[0] <= h_old[address][1];
+    neg[1] <= h_old[address][3];
+    neg[2] <= h_old[address][5];
+    neg[3] <= h_old[address][7];
+    neg[4] <= h_old[address][9];
+    neg[5] <= h_old[address][11];
+    neg[6] <= h_old[address][13];
+    neg[7] <= h_old[address][15];
+    neg[8] <= h_old[address][17];
+
+    single[0] <= 0 ^ h_old[address][0];
+    single[1] <= h_old[address][1] ^ h_old[address][2];
+    single[2] <= h_old[address][3] ^ h_old[address][4];
+    single[3] <= h_old[address][5] ^ h_old[address][6];
+    single[4] <= h_old[address][7] ^ h_old[address][8];
+    single[5] <= h_old[address][9] ^ h_old[address][10];
+    single[6] <= h_old[address][11] ^ h_old[address][12];
+    single[7] <= h_old[address][13] ^ h_old[address][14];
+    single[8] <= h_old[address][15] ^ h_old[address][16];
+
+    double[0] <= (0 == h_old[address][0]) & (h_old[address][0] ^ h_old[address][1]);
+    double[1] <= (h_old[address][1] == h_old[address][2]) & (h_old[address][2] ^ h_old[address][3]);
+    double[2] <= (h_old[address][3] == h_old[address][4]) & (h_old[address][4] ^ h_old[address][5]);
+    double[3] <= (h_old[address][5] == h_old[address][6]) & (h_old[address][6] ^ h_old[address][7]);
+    double[4] <= (h_old[address][7] == h_old[address][8]) & (h_old[address][8] ^ h_old[address][9]);
+    double[5] <= (h_old[address][9] == h_old[address][10]) & (h_old[address][10] ^ h_old[address][11]);
+    double[6] <= (h_old[address][11] == h_old[address][12]) & (h_old[address][12] ^ h_old[address][13]);
+    double[7] <= (h_old[address][13] == h_old[address][14]) & (h_old[address][14] ^ h_old[address][15]);
+    double[8] <= (h_old[address][15] == h_old[address][16]) & (h_old[address][16] ^ h_old[address][17]);
+
+    mul_data <= mdata_r;
+
     
     carry_bit <= h_new[15];
 
