@@ -139,21 +139,21 @@ always @(posedge clk ) begin
             end
             1 : begin
                 if(start_mul_sum2) begin
-                    h_add <= mul_tmp + $signed({{(`PREC-36){mdata_r[19]}},mdata_r,16'd0});
+                    h_add <= mul_tmp + $signed({mdata_r,16'd0});
                 end else begin
-                    h_add <= $signed({{(`PREC-36){mdata_r[19]}},mdata_r,16'd0});
+                    h_add <= $signed({mdata_r,16'd0});
                 end
             end
             2 : begin
                 if(start_mul_sum2) begin
-                    h_add <= mul_tmp + $signed({{(`PREC-36){mdata_r[19]}},mdata_r,16'd0});
+                    h_add <= mul_tmp + $signed({mdata_r,16'd0});
                 end else begin
-                    h_add <= $signed({{(`PREC-36){mdata_r[19]}},mdata_r,16'd0});
+                    h_add <= $signed({mdata_r,16'd0});
                 end
             end
             3 : begin
                 if (x_data[address[4:0]]) begin
-                    h_add <= $signed({{(`PREC-36){mdata_r[19]}},mdata_r,16'd0});
+                    h_add <= $signed({mdata_r,16'd0});
                 end
             end
             4 : begin
