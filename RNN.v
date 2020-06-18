@@ -24,11 +24,16 @@ integer i;
 
 reg signed [`PREC3-1:0] h_old[0:63];
 reg signed [`PREC3-1:0] h_tmp[0:62], tmp;
-reg signed [`PREC-1:0] h_new, h_add;
+reg signed [`PREC-1:0] h_new;
+reg signed [`PREC-1:0] 
+    adder_00, adder_01, adder_02, adder_03, adder_04,
+    adder_10, adder_11,
+    adder_20, add_data;
 reg signed [`PREC-1-16:0] h_new_tmp;
 reg signed [`PREC4-1:0] mul_tmp, mul_tmp1, mul_tmp2, mul_tmp3;
 reg start_mul_sum1;
 reg start_mul_sum2;
+reg mul_on;
 reg [8:0] single;
 reg [8:0] double;
 reg [8:0] neg;
@@ -79,60 +84,69 @@ assign msel = msel_sig;
 assign maddr = maddr_sig;
 
 always @(posedge clk ) begin
-    busy_sig = inited & !reset & (ready | busy_sig);
-    
-    mul_tmp = mul_tmp1 + $signed({mul_tmp2,6'd0}) + $signed({mul_tmp3,12'd0});
-    
-    mul_tmp1 <=
+    busy_sig <= inited & !reset & (ready | busy_sig);
+
+    h_new <= h_new + adder_20 + $signed({add_data,16'd0});
+
+    adder_20 <= adder_10 + $signed({adder_11,8'd0});
+
+    adder_10 <= adder_00 + $signed({adder_01,4'd0});
+    adder_11 <= adder_02 + $signed({adder_03,4'd0}) + $signed({adder_04,8'd0});
+
+    adder_00 <=
         (single[0] ? $signed({(neg[0]?-mul_data:mul_data)     }) : double[0] ? $signed({(neg[0]?-mul_data:mul_data),1'd0}) : $signed(0) ) +
-        (single[1] ? $signed({(neg[1]?-mul_data:mul_data),2'd0}) : double[1] ? $signed({(neg[1]?-mul_data:mul_data),3'd0}) : $signed(0) ) +
-        (single[2] ? $signed({(neg[2]?-mul_data:mul_data),4'd0}) : double[2] ? $signed({(neg[2]?-mul_data:mul_data),5'd0}) : $signed(0) ) ;
-    mul_tmp2 <=
-        (single[3] ? $signed({(neg[3]?-mul_data:mul_data)     }) : double[3] ? $signed({(neg[3]?-mul_data:mul_data),1'd0}) : $signed(0) ) +
-        (single[4] ? $signed({(neg[4]?-mul_data:mul_data),2'd0}) : double[4] ? $signed({(neg[4]?-mul_data:mul_data),3'd0}) : $signed(0) ) +
-        (single[5] ? $signed({(neg[5]?-mul_data:mul_data),4'd0}) : double[5] ? $signed({(neg[5]?-mul_data:mul_data),5'd0}) : $signed(0) ) ;
-    mul_tmp3 <=
+        (single[1] ? $signed({(neg[1]?-mul_data:mul_data),2'd0}) : double[1] ? $signed({(neg[1]?-mul_data:mul_data),3'd0}) : $signed(0) ) ;
+    adder_01 <=
+        (single[2] ? $signed({(neg[2]?-mul_data:mul_data)     }) : double[2] ? $signed({(neg[2]?-mul_data:mul_data),1'd0}) : $signed(0) ) +
+        (single[3] ? $signed({(neg[3]?-mul_data:mul_data),2'd0}) : double[3] ? $signed({(neg[3]?-mul_data:mul_data),3'd0}) : $signed(0) ) ;
+    adder_02 <=
+        (single[4] ? $signed({(neg[4]?-mul_data:mul_data)     }) : double[4] ? $signed({(neg[4]?-mul_data:mul_data),1'd0}) : $signed(0) ) +
+        (single[5] ? $signed({(neg[5]?-mul_data:mul_data),2'd0}) : double[5] ? $signed({(neg[5]?-mul_data:mul_data),3'd0}) : $signed(0) ) ;
+    adder_03 <=
         (single[6] ? $signed({(neg[6]?-mul_data:mul_data)     }) : double[6] ? $signed({(neg[6]?-mul_data:mul_data),1'd0}) : $signed(0) ) +
-        (single[7] ? $signed({(neg[7]?-mul_data:mul_data),2'd0}) : double[7] ? $signed({(neg[7]?-mul_data:mul_data),3'd0}) : $signed(0) ) +
-        (single[8] ? $signed({(neg[8]?-mul_data:mul_data),4'd0}) : double[8] ? $signed({(neg[8]?-mul_data:mul_data),5'd0}) : $signed(0) ) ;
+        (single[7] ? $signed({(neg[7]?-mul_data:mul_data),2'd0}) : double[7] ? $signed({(neg[7]?-mul_data:mul_data),3'd0}) : $signed(0) ) ;
+    adder_04 <=
+        (single[8] ? $signed({(neg[8]?-mul_data:mul_data)     }) : double[8] ? $signed({(neg[8]?-mul_data:mul_data),1'd0}) : $signed(0) );
 
-    neg[0] <= h_old[address][1];
-    neg[1] <= h_old[address][3];
-    neg[2] <= h_old[address][5];
-    neg[3] <= h_old[address][7];
-    neg[4] <= h_old[address][9];
-    neg[5] <= h_old[address][11];
-    neg[6] <= h_old[address][13];
-    neg[7] <= h_old[address][15];
-    neg[8] <= h_old[address][17];
+    if (mul_on) begin
+        neg[0] <= h_old[address][1];
+        neg[1] <= h_old[address][3];
+        neg[2] <= h_old[address][5];
+        neg[3] <= h_old[address][7];
+        neg[4] <= h_old[address][9];
+        neg[5] <= h_old[address][11];
+        neg[6] <= h_old[address][13];
+        neg[7] <= h_old[address][15];
+        neg[8] <= h_old[address][17];
 
-    single[0] <= 0 ^ h_old[address][0];
-    single[1] <= h_old[address][1] ^ h_old[address][2];
-    single[2] <= h_old[address][3] ^ h_old[address][4];
-    single[3] <= h_old[address][5] ^ h_old[address][6];
-    single[4] <= h_old[address][7] ^ h_old[address][8];
-    single[5] <= h_old[address][9] ^ h_old[address][10];
-    single[6] <= h_old[address][11] ^ h_old[address][12];
-    single[7] <= h_old[address][13] ^ h_old[address][14];
-    single[8] <= h_old[address][15] ^ h_old[address][16];
+        single[0] <= 0 ^ h_old[address][0];
+        single[1] <= h_old[address][1] ^ h_old[address][2];
+        single[2] <= h_old[address][3] ^ h_old[address][4];
+        single[3] <= h_old[address][5] ^ h_old[address][6];
+        single[4] <= h_old[address][7] ^ h_old[address][8];
+        single[5] <= h_old[address][9] ^ h_old[address][10];
+        single[6] <= h_old[address][11] ^ h_old[address][12];
+        single[7] <= h_old[address][13] ^ h_old[address][14];
+        single[8] <= h_old[address][15] ^ h_old[address][16];
 
-    double[0] <= (0 == h_old[address][0]) & (h_old[address][0] ^ h_old[address][1]);
-    double[1] <= (h_old[address][1] == h_old[address][2]) & (h_old[address][2] ^ h_old[address][3]);
-    double[2] <= (h_old[address][3] == h_old[address][4]) & (h_old[address][4] ^ h_old[address][5]);
-    double[3] <= (h_old[address][5] == h_old[address][6]) & (h_old[address][6] ^ h_old[address][7]);
-    double[4] <= (h_old[address][7] == h_old[address][8]) & (h_old[address][8] ^ h_old[address][9]);
-    double[5] <= (h_old[address][9] == h_old[address][10]) & (h_old[address][10] ^ h_old[address][11]);
-    double[6] <= (h_old[address][11] == h_old[address][12]) & (h_old[address][12] ^ h_old[address][13]);
-    double[7] <= (h_old[address][13] == h_old[address][14]) & (h_old[address][14] ^ h_old[address][15]);
-    double[8] <= (h_old[address][15] == h_old[address][16]) & (h_old[address][16] ^ h_old[address][17]);
+        double[0] <= (0 == h_old[address][0]) & (h_old[address][0] ^ h_old[address][1]);
+        double[1] <= (h_old[address][1] == h_old[address][2]) & (h_old[address][2] ^ h_old[address][3]);
+        double[2] <= (h_old[address][3] == h_old[address][4]) & (h_old[address][4] ^ h_old[address][5]);
+        double[3] <= (h_old[address][5] == h_old[address][6]) & (h_old[address][6] ^ h_old[address][7]);
+        double[4] <= (h_old[address][7] == h_old[address][8]) & (h_old[address][8] ^ h_old[address][9]);
+        double[5] <= (h_old[address][9] == h_old[address][10]) & (h_old[address][10] ^ h_old[address][11]);
+        double[6] <= (h_old[address][11] == h_old[address][12]) & (h_old[address][12] ^ h_old[address][13]);
+        double[7] <= (h_old[address][13] == h_old[address][14]) & (h_old[address][14] ^ h_old[address][15]);
+        double[8] <= (h_old[address][15] == h_old[address][16]) & (h_old[address][16] ^ h_old[address][17]);
+    end else begin
+        neg <= 0;
+        single <= 0;
+        double <= 0;
+    end
 
     mul_data <= mdata_r;
-
-    
+    add_data <= 0;
     carry_bit <= h_new[15];
-
-    h_new <= h_new + h_add;
-    h_add <= 0;
     
     if (busy_sig) begin
         //mce_sig = 1;
@@ -145,26 +159,18 @@ always @(posedge clk ) begin
                 x_data = idata;
             end
             1 : begin
-                if(start_mul_sum2) begin
-                    h_add <= mul_tmp + $signed({mdata_r,16'd0});
-                end else begin
-                    h_add <= $signed({mdata_r,16'd0});
-                end
+                add_data <= $signed(mdata_r);
             end
             2 : begin
-                if(start_mul_sum2) begin
-                    h_add <= mul_tmp + $signed({mdata_r,16'd0});
-                end else begin
-                    h_add <= $signed({mdata_r,16'd0});
-                end
+                add_data <= $signed(mdata_r);
             end
             3 : begin
                 if (x_data[address[4:0]]) begin
-                    h_add <= $signed({mdata_r,16'd0});
+                    add_data <= $signed(mdata_r);
                 end
             end
             4 : begin
-                h_new_tmp = h_new[`PREC-1:16] + h_add[`PREC-1:16] + carry_bit;
+                h_new_tmp = h_new[`PREC-1:16] + carry_bit;
                 if ((|h_new_tmp[`PREC-2-16:16])&!h_new_tmp[`PREC-1-16]) begin
                     tmp = 20'h10000;
                 end else if ((|(~h_new_tmp[`PREC-2-16:16]))&h_new_tmp[`PREC-1-16]) begin
@@ -176,19 +182,16 @@ always @(posedge clk ) begin
             5 : begin
                 if(h_offset==0) begin
                     x_data = idata;
+                    for (i = 0; i < 63; i = i + 1) begin
+                        h_old[i] = h_tmp[i];
+                    end
+                    h_old[63] = tmp;
                 end
                 h_new <= 0;
                 start_mul_sum1 = 0;
                 start_mul_sum2 = 0;
             end
             6 : begin
-                if (start_mul_sum2) begin
-                    h_add <= mul_tmp;
-                end else if (start_mul_sum1) begin
-                    start_mul_sum2 = 1;
-                end else begin
-                    start_mul_sum1 = 1;
-                end
             end
             default: begin
             end
@@ -205,6 +208,7 @@ always @(posedge clk ) begin
                 // maddr_sig = 0;
             end
             1 : begin
+                mul_on = 0;
                 msel_sig = 3'b001;
                 // address = 0;
                 maddr_sig = h_offset;
@@ -221,7 +225,7 @@ always @(posedge clk ) begin
             end
             4 : begin
                 // msel_sig = 3'b000;
-                // address = 0;
+                address = address ^ 1;
                 // maddr_sig = {h_offset,address[4:0]};
             end
             5 : begin
@@ -231,17 +235,14 @@ always @(posedge clk ) begin
                 mdata_w_sig = tmp;
                 if((&h_offset)) begin
                     i_en_sig = 1;
-                    for (i = 0; i < 63; i = i + 1) begin
-                        h_old[i] = h_tmp[i];
-                    end
-                    h_old[63] = tmp;
+                    t_offset = t_offset + 1;
                 end else begin
                     h_tmp[h_offset] = tmp;
                 end
                 h_offset = h_offset + 1;
-                t_offset = t_offset + (h_offset==0);
             end
             6 : begin
+                mul_on = 1;
                 msel_sig = 3'b010;
                 address = address + 1;
                 maddr_sig = {h_offset,address};
@@ -262,6 +263,7 @@ always @(posedge clk ) begin
         //mce_sig = 0;
         h_new <= 0;
         start_mul_sum2 = 0;
+        mul_on = 0;
     end
     
 end
