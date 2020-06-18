@@ -25,10 +25,12 @@ integer i;
 reg signed [`PREC3-1:0] h_old[0:63];
 reg signed [`PREC3-1:0] h_tmp[0:62], tmp;
 reg signed [`PREC-1:0] h_new;
-reg signed [`PREC-1:0] 
-    adder_00, adder_01, adder_02, adder_03, adder_04,
-    adder_10, adder_11,
-    adder_20, add_data;
+reg signed [23:0] adder_00, adder_01, adder_02, adder_03;
+reg signed [20:0] adder_04;
+reg signed [28:0] adder_10;
+reg signed [29:0] adder_11;
+reg signed [38:0] adder_20;
+reg signed [19:0] add_data;
 reg signed [`PREC-1-16:0] h_new_tmp;
 reg signed [`PREC4-1:0] mul_tmp, mul_tmp1, mul_tmp2, mul_tmp3;
 reg start_mul_sum1;
