@@ -92,7 +92,7 @@ always @(posedge clk ) begin
         has_t_count <= 1;
         t_count <= mdata_r;
     end
-    busy_sig = inited & !reset & (ready | busy_sig);
+    busy_sig <= inited & !reset & (ready | busy_sig);
 
     h_new <= h_new + adder_20 + $signed({add_data,16'd0});
     adder_20 <= adder_10 + $signed({adder_11,8'd0});
