@@ -55,7 +55,7 @@ reg [19:0] mdata_w_sig;
 reg [2:0] msel_sig;
 reg [16:0] maddr_sig;
 
-reg [5:0] address;
+reg [5:0] address, last_address;
 reg [10:0] t_offset;
 reg [5:0] h_offset;
 
@@ -164,7 +164,7 @@ always @(posedge clk ) begin
     mul_data2 <= mul_data0;
 
     if (mul_on) begin
-        mul_data1 <= h_old[address];
+        mul_data1 <= h_old[last_address];
     end else begin
         mul_data1 <= 0;
     end
@@ -177,96 +177,102 @@ always @(posedge clk ) begin
         x_data <= idata;
     end
 
-    if (busy_sig) begin
-        // mce_sig = 1;
-        if(t_count==t_offset) begin
-            inited <= 0;
+    if(t_count==t_offset) begin
+        inited <= 0;
+    end
+    last_address <= address;
+    if (stage == 0) begin
+        address <= address + 1;
+    end else if(stage == 2) begin
+        address <= 32 | (address + 1);
+    end else begin
+        address <= 0;
+    end
+
+    case (last_stage)
+        0 : begin
         end
+        1 : begin
+            add_data <= $signed(mdata_r);
+        end
+        2 : begin
+            if (x_data[last_address[4:0]]) begin
+                add_data <= $signed(mdata_r);
+            end
+        end
+        3 : begin
+            add_data <= $signed(mdata_r);
+        end
+        4,5,6 : begin
+            // stall
+        end
+        7 : begin
+            if(h_offset==0) begin
+                for (i = 0; i < 63; i = i + 1) begin
+                    h_old[i] <= h_tmp[i];
+                end
+            end
+            h_new <= 0;
+        end
+    endcase
+
+    i_en_sig <= 0;
+    case (stage)
+        0 : begin
+            can_mul <= 1;
+            mul_on <= 1;
+            msel_sig <= 3'b010;
+            maddr_sig <= {h_offset,address};
+        end
+        1 : begin
+            if (busy_sig) begin
+                mul_on <= 0;
+                msel_sig <= 3'b001;
+                maddr_sig <= h_offset;
+                if(h_offset == 0) begin
+                    i_en_sig <= 1;
+                end
+            end
+        end
+        2 : begin
+            msel_sig <= 3'b000;
+            maddr_sig <= {h_offset,address[4:0]};
+        end
+        3 : begin
+            msel_sig <= 3'b011;
+            maddr_sig <= h_offset;
+        end
+        4,5,6 : begin
+            // stall
+        end
+        7 : begin
+            msel_sig <= 3'b101;
+            maddr_sig <= {t_offset,h_offset};
+            if ((|h_round[`PREC-2-16:16])&!h_round[`PREC-1-16]) begin
+                tmp = 20'h10000;
+            end else if ((|(~h_round[`PREC-2-16:16]))&h_round[`PREC-1-16]) begin
+                tmp = 20'hf0000;
+            end else begin
+                tmp = h_round[19:0];
+            end
+            mdata_w_sig <= tmp;
+            if((&h_offset)) begin
+                t_offset <= t_offset + 1;
+                h_old[63] <= tmp;
+            end else begin
+                h_tmp[h_offset] <= tmp;
+            end
+            h_offset <= h_offset + 1;
+        end
+    endcase
+
+    if (busy_sig) begin
         last_stage <= stage;
         if (stage == 7 && t_offset == 0 && !(&h_offset) ) begin
             stage <= 1;
         end else if (stage[0] || stage[2] || &address[5:0]) begin
             stage <= stage + 1;
         end
-
-        case (last_stage)
-            0 : begin
-            end
-            1 : begin
-                add_data <= $signed(mdata_r);
-            end
-            2 : begin
-                if (x_data[address[4:0]]) begin
-                    add_data <= $signed(mdata_r);
-                end
-            end
-            3 : begin
-                add_data <= $signed(mdata_r);
-            end
-            4,5,6 : begin
-                // stall
-            end
-            7 : begin
-                if(h_offset==0) begin
-                    for (i = 0; i < 63; i = i + 1) begin
-                        h_old[i] <= h_tmp[i];
-                    end
-                    h_old[63] <= tmp;
-                end
-                h_new <= 0;
-            end
-        endcase
-        i_en_sig <= 0;
-        case (stage)
-            0 : begin
-                can_mul <= 1;
-                mul_on <= 1;
-                msel_sig <= 3'b010;
-                address = address + 1;
-                maddr_sig <= {h_offset,address};
-            end
-            1 : begin
-                mul_on <= 0;
-                msel_sig <= 3'b001;
-                // address = 0;
-                maddr_sig <= h_offset;
-                if(h_offset == 0) begin
-                    i_en_sig <= 1;
-                end
-            end
-            2 : begin
-                msel_sig <= 3'b000;
-                address = (address | 32) + 1;
-                maddr_sig <= {h_offset,address[4:0]};
-            end
-            3 : begin
-                msel_sig <= 3'b011;
-                // address = 0;
-                maddr_sig <= h_offset;
-            end
-            4,5,6 : begin
-                // stall
-            end
-            7 : begin
-                msel_sig <= 3'b101;
-                // address = 0;
-                maddr_sig <= {t_offset,h_offset};
-                if ((|h_round[`PREC-2-16:16])&!h_round[`PREC-1-16]) begin
-                    tmp = 20'h10000;
-                end else if ((|(~h_round[`PREC-2-16:16]))&h_round[`PREC-1-16]) begin
-                    tmp = 20'hf0000;
-                end else begin
-                    tmp = h_round[19:0];
-                end
-                mdata_w_sig <= tmp;
-                if((&h_offset)) begin
-                    t_offset <= t_offset + 1;
-                end else begin
-                    h_tmp[h_offset] <= tmp;
-                end
-                h_offset <= h_offset + 1;
-            end
-        endcase
     end
     
     if (reset_sig) begin
@@ -275,12 +281,11 @@ always @(posedge clk ) begin
         t_count <= -1;
         last_stage <= 0;
         stage <= 1;
-        address = 0;
+        address <= 0;
         msel_sig <= 3'b100;
         maddr_sig <= 0;
         t_offset <= 0;
         h_offset <= 0;
-        //mce_sig = 0;
         h_new <= 0;
         mul_on <= 0;
         can_mul <= 0;
