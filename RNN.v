@@ -54,10 +54,13 @@ reg [5:0] h_offset;
 
 reg inited;
 
+reg [2:0] last_stage;
 reg [2:0] stage;
 reg [10:0] t_count;
+reg has_t_count;
 
 reg carry_bit;
+
 
 // reg signed [39:0] mul_tmp;
 
@@ -84,10 +87,14 @@ assign msel = msel_sig;
 assign maddr = maddr_sig;
 
 always @(posedge clk ) begin
-    busy_sig <= inited & !reset & (ready | busy_sig);
+    if (busy_sig&&!has_t_count) begin
+        // $display("%d",mdata_r);
+        has_t_count <= 1;
+        t_count <= mdata_r;
+    end
+    busy_sig = inited & !reset & (ready | busy_sig);
 
     h_new <= h_new + adder_20 + $signed({add_data,16'd0});
-
     adder_20 <= adder_10 + $signed({adder_11,8'd0});
 
     adder_10 <= adder_00 + $signed({adder_01,4'd0});
@@ -149,28 +156,33 @@ always @(posedge clk ) begin
     carry_bit <= h_new[15];
     
     if (busy_sig) begin
-        //mce_sig = 1;
+        // mce_sig = 1;
         if(t_count==t_offset) begin
             inited = 0;
         end
-        case (stage)
+        case (last_stage)
             0 : begin
-                t_count = mdata_r;
-                x_data = idata;
+                add_data <= $signed(mdata_r);
             end
             1 : begin
                 add_data <= $signed(mdata_r);
+                if(h_offset == 0) begin
+                    x_data = idata;
+                end
             end
             2 : begin
-                add_data <= $signed(mdata_r);
-            end
-            3 : begin
                 if (x_data[address[4:0]]) begin
                     add_data <= $signed(mdata_r);
                 end
             end
+            3 : begin
+                add_data <= carry_bit;
+            end
             4 : begin
-                h_new_tmp = h_new[`PREC-1:16] + carry_bit;
+            end
+            5 : begin
+                // h_new_tmp = h_new[`PREC-1:16] + carry_bit;
+                h_new_tmp = h_new[`PREC-1:16];
                 if ((|h_new_tmp[`PREC-2-16:16])&!h_new_tmp[`PREC-1-16]) begin
                     tmp = 20'h10000;
                 end else if ((|(~h_new_tmp[`PREC-2-16:16]))&h_new_tmp[`PREC-1-16]) begin
@@ -179,9 +191,8 @@ always @(posedge clk ) begin
                     tmp = h_new_tmp[19:0];
                 end
             end
-            5 : begin
+            6 : begin
                 if(h_offset==0) begin
-                    x_data = idata;
                     for (i = 0; i < 63; i = i + 1) begin
                         h_old[i] = h_tmp[i];
                     end
@@ -189,70 +200,71 @@ always @(posedge clk ) begin
                 end
                 h_new <= 0;
             end
-            6 : begin
-            end
-            default: begin
+            7 : begin
             end
         endcase
-
-        stage = stage + (address==0);
-        stage = stage == (6+(t_offset!=0)) ? 1 : stage;
         i_en_sig = 0;
         case (stage)
             0 : begin
-                i_en_sig = 1;
-                // msel_sig = 3'b100;
-                // address = 0;
-                // maddr_sig = 0;
-            end
-            1 : begin
                 mul_on = 0;
                 msel_sig = 3'b001;
                 // address = 0;
                 maddr_sig = h_offset;
             end
-            2 : begin
+            1 : begin
                 msel_sig = 3'b011;
                 // address = 0;
                 // maddr_sig = h_offset;
+                if(h_offset == 0) begin
+                    i_en_sig = 1;
+                end
             end
-            3 : begin
+            2 : begin
                 msel_sig = 3'b000;
                 address = (address + 1) & 31;
                 maddr_sig = {h_offset,address[4:0]};
             end
+            3 : begin
+                // stall
+            end
             4 : begin
-                // msel_sig = 3'b000;
-                address = address ^ 1;
-                // maddr_sig = {h_offset,address[4:0]};
+                // stall
             end
             5 : begin
+                // stall
+            end
+            6 : begin
                 msel_sig = 3'b101;
                 address = 0;
                 maddr_sig = {t_offset,h_offset};
                 mdata_w_sig = tmp;
                 if((&h_offset)) begin
-                    i_en_sig = 1;
                     t_offset = t_offset + 1;
                 end else begin
                     h_tmp[h_offset] = tmp;
                 end
                 h_offset = h_offset + 1;
             end
-            6 : begin
+            7 : begin
                 mul_on = 1;
                 msel_sig = 3'b010;
                 address = address + 1;
                 maddr_sig = {h_offset,address};
             end
-            default: begin
-            end
         endcase
+        last_stage = stage;
+        if (stage==6&&t_offset==0) begin
+            stage = 0;
+        end else if (address==0) begin
+            stage = stage + 1;
+        end
     end 
     if (reset) begin
         inited = 1;
-        t_count = -1;
-        stage = -1;
+        has_t_count <= 0;
+        t_count <= -1;
+        last_stage = 7;
+        stage = 0;
         address = 0;
         msel_sig = 3'b100;
         maddr_sig = 0;
@@ -262,7 +274,6 @@ always @(posedge clk ) begin
         h_new <= 0;
         mul_on = 0;
     end
-    
 end
 
 endmodule
