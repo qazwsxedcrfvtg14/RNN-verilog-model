@@ -99,17 +99,12 @@ figcaption {
 </li>
 <li>Stage
 <ul>
-<li>一開始仔細思考之後，會發現基本上只要依照讀六種不同 memory 的位置來切狀態即可完成，並且會在其中的五個狀態中重複循環。</li>
+<li><s>一開始仔細思考之後，會發現基本上只要依照讀六種不同 memory 的位置來切狀態即可完成，並且會在其中的五個狀態中重複循環。</s>(後來為了pipeline和編號的方便，因此改成八個狀態)</li>
 </ul>
 </li>
 <li>乘法器
 <ul>
-<li>在寫之前就有預想到乘法部分會變成 critical path，而實際用 design compiler 跑下去結果也是如此。因此把一個大乘法拆成多段小的乘法，然後把加總的部分放到下個 cycle 處理，這樣就能壓低 cycle time。</li>
-</ul>
-</li>
-<li>activation function
-<ul>
-<li>把乘法壓低後，critical path 就變成了計算 activation function 到傳出結果到 mdata_w 的這段，因為這段只有半個 cycle 的時間可以運算(其它的運算都是在下次的 posedge 前能計算出結果就好，但是送出的資料則必須要在 negedge 前計算完成)，因此把 activation function 跟送出的部分拆開成兩個階段，雖然會讓總 cycle 數量多大約1%，卻可以讓 cycle time 繼續往下壓，因此這也是個好的優化。</li>
+<li>在寫之前就有預想到乘法部分會變成 critical path，而實際用 design compiler 跑下去結果也是如此。因此使用 booth algorithm 把他變成幾個數字的加法，然後把加總的部分使用 pipeline 來處理，這樣就能壓低 cycle time。</li>
 </ul>
 </li>
 <li>Pipeline
@@ -119,7 +114,7 @@ figcaption {
 </li>
 <li>讀寫優化
 <ul>
-<li>盡量讓每個 register 寫入之後都不要在同個 cycle 中去讀他，可以讓 compiler 更容易的優化這種東西。</li>
+<li><s>盡量讓每個 register 寫入之後都不要在同個 cycle 中去讀他，可以讓 compiler 更容易的優化這種東西。</s>(後來直接把所有的=都換成&lt;=)</li>
 </ul>
 </li>
 <li>乘法和加法單元
@@ -129,13 +124,26 @@ figcaption {
 </li>
 <li>Transistor-level 合成
 <ul>
-<li>Transistor-level 合成的時候，在 nano Route 這個階段的時候，如果 WNS 不夠大，innovus 會直接 crash，因此後來發現的解決方法是事先先執行 ECO Design，然後到 Mode 裡面把 Thresholds 裡的 Setup Slack 提高，這樣就能讓WNS變成正比較大的值，而不是 0.000 附近。這樣之後就能順利的讓 nano Route 不會 crash 了。</li>
+<li>Transistor-level 合成的時候，在 nano Route 這個階段的時候，如果 WNS 不夠大，innovus 會直接 crash。後來發現的解決方法是事先先執行 ECO Design，然後到 Mode 裡面把 Thresholds 裡的 Setup Slack 提高，這樣就能讓WNS變成正比較大的值，而不是 0.000 附近。這樣之後就能順利的讓 nano Route 不會 crash 了。</li>
 </ul>
 </li>
-<li>合成 Cycle time
+<li>Cycle time
 <ul>
-<li>Gate-Level: <eq><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mn>3.8</mn></mrow><annotation encoding="application/x-tex">3.8</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">3</span><span class="mord">.</span><span class="mord">8</span></span></span></span></eq> <eq><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>n</mi><mi>s</mi></mrow><annotation encoding="application/x-tex">ns</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.43056em;vertical-align:0em;"></span><span class="mord mathdefault">n</span><span class="mord mathdefault">s</span></span></span></span></eq></li>
-<li>Transistor-Level: <eq><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mn>3.8</mn></mrow><annotation encoding="application/x-tex">3.8</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">3</span><span class="mord">.</span><span class="mord">8</span></span></span></span></eq> <eq><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>n</mi><mi>s</mi></mrow><annotation encoding="application/x-tex">ns</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.43056em;vertical-align:0em;"></span><span class="mord mathdefault">n</span><span class="mord mathdefault">s</span></span></span></span></eq></li>
+<li>這個 verilog 在 Gate-Level 合成的時候，用 2ns 當 cycle time 也能合成的出來(timing可以得到MET)，但是拿去模擬的時候就會出現問題，而看起來主要都是 hold time violation，但是因為找不到解決的方式，最後只能把 cycle time 調整成 3.6 ns 才不會出錯。</li>
+</ul>
+</li>
+<li>合成參數
+<ul>
+<li>Gate-Level
+<ul>
+<li>Cycle time: <eq><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mn>3.6</mn></mrow><annotation encoding="application/x-tex">3.6</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">3</span><span class="mord">.</span><span class="mord">6</span></span></span></span></eq> <eq><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>n</mi><mi>s</mi></mrow><annotation encoding="application/x-tex">ns</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.43056em;vertical-align:0em;"></span><span class="mord mathdefault">n</span><span class="mord mathdefault">s</span></span></span></span></eq></li>
+</ul>
+</li>
+<li>Transistor-Level
+<ul>
+<li>Cycle time: <eq><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mn>3.6</mn></mrow><annotation encoding="application/x-tex">3.6</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">3</span><span class="mord">.</span><span class="mord">6</span></span></span></span></eq> <eq><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>n</mi><mi>s</mi></mrow><annotation encoding="application/x-tex">ns</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.43056em;vertical-align:0em;"></span><span class="mord mathdefault">n</span><span class="mord mathdefault">s</span></span></span></span></eq></li>
+</ul>
+</li>
 </ul>
 </li>
 <li>結果
@@ -149,22 +157,22 @@ figcaption {
 </li>
 <li>Cycle time that can pass your gate-level simulation:
 <ul>
-<li><eq><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mn>3.8</mn></mrow><annotation encoding="application/x-tex">3.8</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">3</span><span class="mord">.</span><span class="mord">8</span></span></span></span></eq> <eq><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>n</mi><mi>s</mi></mrow><annotation encoding="application/x-tex">ns</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.43056em;vertical-align:0em;"></span><span class="mord mathdefault">n</span><span class="mord mathdefault">s</span></span></span></span></eq></li>
+<li><eq><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mn>3.6</mn></mrow><annotation encoding="application/x-tex">3.6</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">3</span><span class="mord">.</span><span class="mord">6</span></span></span></span></eq> <eq><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>n</mi><mi>s</mi></mrow><annotation encoding="application/x-tex">ns</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.43056em;vertical-align:0em;"></span><span class="mord mathdefault">n</span><span class="mord mathdefault">s</span></span></span></span></eq></li>
 </ul>
 </li>
 <li>Total simulation time:
 <ul>
-<li><eq><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mn>4848466.532</mn></mrow><annotation encoding="application/x-tex">4848466.532</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">4</span><span class="mord">8</span><span class="mord">4</span><span class="mord">8</span><span class="mord">4</span><span class="mord">6</span><span class="mord">6</span><span class="mord">.</span><span class="mord">5</span><span class="mord">3</span><span class="mord">2</span></span></span></span></eq> <eq><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>n</mi><mi>s</mi></mrow><annotation encoding="application/x-tex">ns</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.43056em;vertical-align:0em;"></span><span class="mord mathdefault">n</span><span class="mord mathdefault">s</span></span></span></span></eq></li>
+<li><eq><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mn>4685447.578</mn></mrow><annotation encoding="application/x-tex">4685447.578</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">4</span><span class="mord">6</span><span class="mord">8</span><span class="mord">5</span><span class="mord">4</span><span class="mord">4</span><span class="mord">7</span><span class="mord">.</span><span class="mord">5</span><span class="mord">7</span><span class="mord">8</span></span></span></span></eq> <eq><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>n</mi><mi>s</mi></mrow><annotation encoding="application/x-tex">ns</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.43056em;vertical-align:0em;"></span><span class="mord mathdefault">n</span><span class="mord mathdefault">s</span></span></span></span></eq></li>
 </ul>
 </li>
 <li>Total cell area:
 <ul>
-<li><eq><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mn>169135.726395</mn></mrow><annotation encoding="application/x-tex">169135.726395</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">1</span><span class="mord">6</span><span class="mord">9</span><span class="mord">1</span><span class="mord">3</span><span class="mord">5</span><span class="mord">.</span><span class="mord">7</span><span class="mord">2</span><span class="mord">6</span><span class="mord">3</span><span class="mord">9</span><span class="mord">5</span></span></span></span></eq> <eq><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>μ</mi><msup><mi>m</mi><mn>2</mn></msup></mrow><annotation encoding="application/x-tex">\mu{m^2}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1.008548em;vertical-align:-0.19444em;"></span><span class="mord mathdefault">μ</span><span class="mord"><span class="mord"><span class="mord mathdefault">m</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span></span></span></span></span></span></span></span></span></eq></li>
+<li><eq><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mn>140038.896131</mn></mrow><annotation encoding="application/x-tex">140038.896131</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">1</span><span class="mord">4</span><span class="mord">0</span><span class="mord">0</span><span class="mord">3</span><span class="mord">8</span><span class="mord">.</span><span class="mord">8</span><span class="mord">9</span><span class="mord">6</span><span class="mord">1</span><span class="mord">3</span><span class="mord">1</span></span></span></span></eq> <eq><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>μ</mi><msup><mi>m</mi><mn>2</mn></msup></mrow><annotation encoding="application/x-tex">\mu{m^2}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1.008548em;vertical-align:-0.19444em;"></span><span class="mord mathdefault">μ</span><span class="mord"><span class="mord"><span class="mord mathdefault">m</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span></span></span></span></span></span></span></span></span></eq></li>
 </ul>
 </li>
 <li>Cell area <eq><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mo>×</mo></mrow><annotation encoding="application/x-tex">\times</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.66666em;vertical-align:-0.08333em;"></span><span class="mord">×</span></span></span></span></eq> Simulation time:
 <ul>
-<li><eq><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mn>820048908791.6665</mn></mrow><annotation encoding="application/x-tex">820048908791.6665</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">8</span><span class="mord">2</span><span class="mord">0</span><span class="mord">0</span><span class="mord">4</span><span class="mord">8</span><span class="mord">9</span><span class="mord">0</span><span class="mord">8</span><span class="mord">7</span><span class="mord">9</span><span class="mord">1</span><span class="mord">.</span><span class="mord">6</span><span class="mord">6</span><span class="mord">6</span><span class="mord">5</span></span></span></span></eq> <eq><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>μ</mi><msup><mi>m</mi><mn>2</mn></msup><mo>⋅</mo><mrow><mi>n</mi><mi>s</mi></mrow></mrow><annotation encoding="application/x-tex">\mu{m^2}\cdot{ns}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1.008548em;vertical-align:-0.19444em;"></span><span class="mord mathdefault">μ</span><span class="mord"><span class="mord"><span class="mord mathdefault">m</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">⋅</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.43056em;vertical-align:0em;"></span><span class="mord"><span class="mord mathdefault">n</span><span class="mord mathdefault">s</span></span></span></span></span></eq></li>
+<li><eq><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mn>656144906702.7875</mn></mrow><annotation encoding="application/x-tex">656144906702.7875</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">6</span><span class="mord">5</span><span class="mord">6</span><span class="mord">1</span><span class="mord">4</span><span class="mord">4</span><span class="mord">9</span><span class="mord">0</span><span class="mord">6</span><span class="mord">7</span><span class="mord">0</span><span class="mord">2</span><span class="mord">.</span><span class="mord">7</span><span class="mord">8</span><span class="mord">7</span><span class="mord">5</span></span></span></span></eq> <eq><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>μ</mi><msup><mi>m</mi><mn>2</mn></msup><mo>⋅</mo><mrow><mi>n</mi><mi>s</mi></mrow></mrow><annotation encoding="application/x-tex">\mu{m^2}\cdot{ns}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1.008548em;vertical-align:-0.19444em;"></span><span class="mord mathdefault">μ</span><span class="mord"><span class="mord"><span class="mord mathdefault">m</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">⋅</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.43056em;vertical-align:0em;"></span><span class="mord"><span class="mord mathdefault">n</span><span class="mord mathdefault">s</span></span></span></span></span></eq></li>
 </ul>
 </li>
 </ul>
@@ -178,22 +186,22 @@ figcaption {
 </li>
 <li>Cycle time that can pass your transistor-level simulation:
 <ul>
-<li><eq><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mn>3.8</mn></mrow><annotation encoding="application/x-tex">3.8</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">3</span><span class="mord">.</span><span class="mord">8</span></span></span></span></eq> <eq><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>n</mi><mi>s</mi></mrow><annotation encoding="application/x-tex">ns</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.43056em;vertical-align:0em;"></span><span class="mord mathdefault">n</span><span class="mord mathdefault">s</span></span></span></span></eq></li>
+<li><eq><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mn>3.6</mn></mrow><annotation encoding="application/x-tex">3.6</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">3</span><span class="mord">.</span><span class="mord">6</span></span></span></span></eq> <eq><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>n</mi><mi>s</mi></mrow><annotation encoding="application/x-tex">ns</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.43056em;vertical-align:0em;"></span><span class="mord mathdefault">n</span><span class="mord mathdefault">s</span></span></span></span></eq></li>
 </ul>
 </li>
 <li>Total simulation time:
 <ul>
-<li><eq><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mn>4848466.528</mn></mrow><annotation encoding="application/x-tex">4848466.528</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">4</span><span class="mord">8</span><span class="mord">4</span><span class="mord">8</span><span class="mord">4</span><span class="mord">6</span><span class="mord">6</span><span class="mord">.</span><span class="mord">5</span><span class="mord">2</span><span class="mord">8</span></span></span></span></eq> <eq><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>n</mi><mi>s</mi></mrow><annotation encoding="application/x-tex">ns</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.43056em;vertical-align:0em;"></span><span class="mord mathdefault">n</span><span class="mord mathdefault">s</span></span></span></span></eq></li>
+<li><eq><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mn>4685447.569</mn></mrow><annotation encoding="application/x-tex">4685447.569</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">4</span><span class="mord">6</span><span class="mord">8</span><span class="mord">5</span><span class="mord">4</span><span class="mord">4</span><span class="mord">7</span><span class="mord">.</span><span class="mord">5</span><span class="mord">6</span><span class="mord">9</span></span></span></span></eq> <eq><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>n</mi><mi>s</mi></mrow><annotation encoding="application/x-tex">ns</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.43056em;vertical-align:0em;"></span><span class="mord mathdefault">n</span><span class="mord mathdefault">s</span></span></span></span></eq></li>
 </ul>
 </li>
 <li>Total cell area:
 <ul>
-<li><eq><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mn>188070.223</mn></mrow><annotation encoding="application/x-tex">188070.223</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">1</span><span class="mord">8</span><span class="mord">8</span><span class="mord">0</span><span class="mord">7</span><span class="mord">0</span><span class="mord">.</span><span class="mord">2</span><span class="mord">2</span><span class="mord">3</span></span></span></span></eq> <eq><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>μ</mi><msup><mi>m</mi><mn>2</mn></msup></mrow><annotation encoding="application/x-tex">\mu{m^2}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1.008548em;vertical-align:-0.19444em;"></span><span class="mord mathdefault">μ</span><span class="mord"><span class="mord"><span class="mord mathdefault">m</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span></span></span></span></span></span></span></span></span></eq></li>
+<li><eq><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mn>147578.746</mn></mrow><annotation encoding="application/x-tex">147578.746</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">1</span><span class="mord">4</span><span class="mord">7</span><span class="mord">5</span><span class="mord">7</span><span class="mord">8</span><span class="mord">.</span><span class="mord">7</span><span class="mord">4</span><span class="mord">6</span></span></span></span></eq> <eq><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>μ</mi><msup><mi>m</mi><mn>2</mn></msup></mrow><annotation encoding="application/x-tex">\mu{m^2}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1.008548em;vertical-align:-0.19444em;"></span><span class="mord mathdefault">μ</span><span class="mord"><span class="mord"><span class="mord mathdefault">m</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span></span></span></span></span></span></span></span></span></eq></li>
 </ul>
 </li>
 <li>Cell area <eq><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mo>×</mo></mrow><annotation encoding="application/x-tex">\times</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.66666em;vertical-align:-0.08333em;"></span><span class="mord">×</span></span></span></span></eq> Simulation time:
 <ul>
-<li><eq><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mn>911852181128.9957</mn></mrow><annotation encoding="application/x-tex">911852181128.9957</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">9</span><span class="mord">1</span><span class="mord">1</span><span class="mord">8</span><span class="mord">5</span><span class="mord">2</span><span class="mord">1</span><span class="mord">8</span><span class="mord">1</span><span class="mord">1</span><span class="mord">2</span><span class="mord">8</span><span class="mord">.</span><span class="mord">9</span><span class="mord">9</span><span class="mord">5</span><span class="mord">7</span></span></span></span></eq> <eq><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>μ</mi><msup><mi>m</mi><mn>2</mn></msup><mo>⋅</mo><mrow><mi>n</mi><mi>s</mi></mrow></mrow><annotation encoding="application/x-tex">\mu{m^2}\cdot{ns}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1.008548em;vertical-align:-0.19444em;"></span><span class="mord mathdefault">μ</span><span class="mord"><span class="mord"><span class="mord mathdefault">m</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">⋅</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.43056em;vertical-align:0em;"></span><span class="mord"><span class="mord mathdefault">n</span><span class="mord mathdefault">s</span></span></span></span></span></eq></li>
+<li><eq><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mn>691472476681.7686</mn></mrow><annotation encoding="application/x-tex">691472476681.7686</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">6</span><span class="mord">9</span><span class="mord">1</span><span class="mord">4</span><span class="mord">7</span><span class="mord">2</span><span class="mord">4</span><span class="mord">7</span><span class="mord">6</span><span class="mord">6</span><span class="mord">8</span><span class="mord">1</span><span class="mord">.</span><span class="mord">7</span><span class="mord">6</span><span class="mord">8</span><span class="mord">6</span></span></span></span></eq> <eq><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>μ</mi><msup><mi>m</mi><mn>2</mn></msup><mo>⋅</mo><mrow><mi>n</mi><mi>s</mi></mrow></mrow><annotation encoding="application/x-tex">\mu{m^2}\cdot{ns}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1.008548em;vertical-align:-0.19444em;"></span><span class="mord mathdefault">μ</span><span class="mord"><span class="mord"><span class="mord mathdefault">m</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">⋅</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.43056em;vertical-align:0em;"></span><span class="mord"><span class="mord mathdefault">n</span><span class="mord mathdefault">s</span></span></span></span></span></eq></li>
 </ul>
 </li>
 </ul>
@@ -203,42 +211,42 @@ figcaption {
 <li>截圖
 <ul>
 <li>RTL Pass
-<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-18%20065409.png" alt="_"></li>
+<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-20%20061807.png" alt="_"></li>
 <li>Gate-level Area Report
-<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-18%20072457.png" alt="_"></li>
+<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-20%20062407.png" alt="_"></li>
 <li>Gate-level Timing Report
-<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-18%20072530.png" alt="_"></li>
+<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-20%20062501.png" alt="_"></li>
 <li>Gate-level Pass
-<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-18%20070207.png" alt="_"></li>
+<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-20%20061053.png" alt="_"></li>
 <li>Transistor-level Floorplan
-<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-18%20062548.png" alt="_">
-<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-18%20062616.png" alt="_"></li>
+<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-20%20051904.png" alt="_">
+<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-20%20051927.png" alt="_"></li>
 <li>Transistor-level Full placement
-<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-18%20063300.png" alt="_">
-<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-18%20063320.png" alt="_">
-<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-18%20063424.png" alt="_"></li>
+<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-20%20052046.png" alt="_">
+<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-20%20053442.png" alt="_">
+<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-20%20053607.png" alt="_"></li>
 <li>Transistor-level Power Ring
-<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-18%20063538.png" alt="_"></li>
+<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-20%20053700.png" alt="_"></li>
 <li>Transistor-level Power Stripe
-<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-18%20063627.png" alt="_">
-<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-18%20063716.png" alt="_">
-<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-18%20063740.png" alt="_"></li>
+<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-20%20053719.png" alt="_">
+<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-20%20053758.png" alt="_">
+<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-20%20053909.png" alt="_"></li>
 <li>Transistor-level CTS
-<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-18%20064246.png" alt="_">
-<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-18%20064314.png" alt="_">
-<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-18%20064339.png" alt="_"></li>
+<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-20%20054159.png" alt="_">
+<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-20%20054240.png" alt="_">
+<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-20%20054320.png" alt="_"></li>
 <li>Transistor-level Special Route
-<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-18%20064431.png" alt="_">
-<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-18%20064456.png" alt="_"></li>
+<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-20%20054401.png" alt="_">
+<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-20%20054437.png" alt="_"></li>
 <li>Transistor-level Nano Route
-<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-18%20064942.png" alt="_">
-<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-18%20073415.png" alt="_">
-<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-18%20065044.png" alt="_">
-<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-18%20065117.png" alt="_"></li>
+<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-20%20054750.png" alt="_">
+<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-20%20054850.png" alt="_">
+<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-20%20054919.png" alt="_">
+<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-20%20054946.png" alt="_"></li>
 <li>Transistor-level Summary
-<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-18%20072604.png" alt="_"></li>
+<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-20%20062532.png" alt="_"></li>
 <li>Transistor-level Pass
-<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-18%20065409.png" alt="_"></li>
+<img src="file:///c:\Users\qazws\OneDrive - csie.ntu.edu.tw\NTU\IC\project\imgs\%E8%A8%BB%E8%A7%A3%202020-06-20%20061726.png" alt="_"></li>
 </ul>
 </li>
 </ol>
