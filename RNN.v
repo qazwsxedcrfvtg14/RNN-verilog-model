@@ -25,6 +25,7 @@ integer i;
 reg signed [`PREC3-1:0] h_old[0:63];
 reg signed [`PREC3-1:0] h_tmp[0:62], tmp;
 reg signed [`PREC-1:0] h_new;
+reg signed [22:0] adder_d[0:8];
 reg signed [23:0] adder_00, adder_01, adder_02, adder_03;
 reg signed [20:0] adder_04;
 reg signed [28:0] adder_10;
@@ -100,20 +101,15 @@ always @(posedge clk ) begin
     adder_10 <= adder_00 + $signed({adder_01,4'd0});
     adder_11 <= adder_02 + $signed({adder_03,4'd0}) + $signed({adder_04,8'd0});
 
-    adder_00 <=
-        (single[0] ? $signed({(neg[0]?-mul_data:mul_data)     }) : double[0] ? $signed({(neg[0]?-mul_data:mul_data),1'd0}) : $signed(0) ) +
-        (single[1] ? $signed({(neg[1]?-mul_data:mul_data),2'd0}) : double[1] ? $signed({(neg[1]?-mul_data:mul_data),3'd0}) : $signed(0) ) ;
-    adder_01 <=
-        (single[2] ? $signed({(neg[2]?-mul_data:mul_data)     }) : double[2] ? $signed({(neg[2]?-mul_data:mul_data),1'd0}) : $signed(0) ) +
-        (single[3] ? $signed({(neg[3]?-mul_data:mul_data),2'd0}) : double[3] ? $signed({(neg[3]?-mul_data:mul_data),3'd0}) : $signed(0) ) ;
-    adder_02 <=
-        (single[4] ? $signed({(neg[4]?-mul_data:mul_data)     }) : double[4] ? $signed({(neg[4]?-mul_data:mul_data),1'd0}) : $signed(0) ) +
-        (single[5] ? $signed({(neg[5]?-mul_data:mul_data),2'd0}) : double[5] ? $signed({(neg[5]?-mul_data:mul_data),3'd0}) : $signed(0) ) ;
-    adder_03 <=
-        (single[6] ? $signed({(neg[6]?-mul_data:mul_data)     }) : double[6] ? $signed({(neg[6]?-mul_data:mul_data),1'd0}) : $signed(0) ) +
-        (single[7] ? $signed({(neg[7]?-mul_data:mul_data),2'd0}) : double[7] ? $signed({(neg[7]?-mul_data:mul_data),3'd0}) : $signed(0) ) ;
-    adder_04 <=
-        (single[8] ? $signed({(neg[8]?-mul_data:mul_data)     }) : double[8] ? $signed({(neg[8]?-mul_data:mul_data),1'd0}) : $signed(0) );
+    adder_00 <= adder_d[0] + $signed({adder_d[1],2'd0});
+    adder_01 <= adder_d[2] + $signed({adder_d[3],2'd0});
+    adder_02 <= adder_d[4] + $signed({adder_d[5],2'd0});
+    adder_03 <= adder_d[6] + $signed({adder_d[7],2'd0});
+    adder_04 <= adder_d[8];
+
+    for (i = 0; i < 9; i = i + 1) begin
+        adder_d[i] <= (single[i] ? $signed({(neg[i]?-mul_data:mul_data)     }) : double[i] ? $signed({(neg[i]?-mul_data:mul_data),1'd0}) : $signed(0) );
+    end
 
     if (mul_on) begin
         neg[0] <= h_old[address][1];
