@@ -23,7 +23,7 @@ output    [2:0] msel;
 integer i;
 
 reg signed [`PREC3-1:0] h_old[0:63];
-reg signed [`PREC3-1:0] h_tmp[0:62], tmp;
+reg signed [`PREC3-1:0] h_tmp[0:62];
 reg signed [`PREC-1:0] h_new;
 reg signed [20:0] adder_d[0:8];
 reg signed [23:0] adder_00, adder_01, adder_02, adder_03;
@@ -104,15 +104,24 @@ always @(posedge clk ) begin
     busy_sig <= inited & !reset_sig & (ready | busy_sig);
     
     h_new <= h_new + adder_40;
-    h_round <= $signed(h_new[`PREC-1:16]) + $signed(adder_40[39:16]) + $signed({1'd0,carry_bit});
 
-    if (can_mul) begin
-        adder_40 <= adder_30 + $signed({add_data,16'd0});
+    if ((|h_round[`PREC-2-16:16])&!h_round[`PREC-1-16]) begin
+        mdata_w_sig <= 20'h10000;
+    end else if ((|(~h_round[`PREC-2-16:16]))&h_round[`PREC-1-16]) begin
+        mdata_w_sig <= 20'hf0000;
     end else begin
-        adder_40 <= $signed({add_data,16'd0});
+        mdata_w_sig <= h_round[19:0];
     end
 
-    adder_30 <= adder_20 + $signed({adder_21,16'd0});
+    h_round <= $signed(h_new[`PREC-1:16]) + $signed(adder_40[39:16]) + $signed(add_data) + $signed({1'd0,carry_bit});
+
+    adder_40 <= adder_30 + $signed({add_data,16'd0});
+
+    if (can_mul) begin
+        adder_30 <= adder_20 + $signed({adder_21,16'd0});
+    end else begin
+        adder_30 <=0;
+    end
 
     adder_20 <= adder_10 + $signed({adder_11,8'd0});
     adder_21 <= adder_12;
@@ -216,6 +225,7 @@ always @(posedge clk ) begin
         end
     endcase
 
+    i_en_sig <= 0;
     case (stage)
         0 : begin
             can_mul <= 1;
@@ -224,8 +234,8 @@ always @(posedge clk ) begin
             maddr_sig <= {h_offset,address};
         end
         1 : begin
+            mul_on <= 0;
             if (busy_sig) begin
-                mul_on <= 0;
                 msel_sig <= 3'b001;
                 maddr_sig <= h_offset;
                 if(h_offset == 0) begin
@@ -234,7 +244,6 @@ always @(posedge clk ) begin
             end
         end
         2 : begin
-            i_en_sig <= 0;
             msel_sig <= 3'b000;
             maddr_sig <= {h_offset,address[4:0]};
         end
@@ -248,19 +257,11 @@ always @(posedge clk ) begin
         7 : begin
             msel_sig <= 3'b101;
             maddr_sig <= {t_offset,h_offset};
-            if ((|h_round[`PREC-2-16:16])&!h_round[`PREC-1-16]) begin
-                tmp = 20'h10000;
-            end else if ((|(~h_round[`PREC-2-16:16]))&h_round[`PREC-1-16]) begin
-                tmp = 20'hf0000;
-            end else begin
-                tmp = h_round[19:0];
-            end
-            mdata_w_sig <= tmp;
             if((&h_offset)) begin
                 t_offset <= t_offset + 1;
-                h_old[63] <= tmp;
+                h_old[63] <= mdata_w_sig;
             end else begin
-                h_tmp[h_offset] <= tmp;
+                h_tmp[h_offset] <= mdata_w_sig;
             end
             h_offset <= h_offset + 1;
         end
@@ -289,6 +290,7 @@ always @(posedge clk ) begin
         h_new <= 0;
         mul_on <= 0;
         can_mul <= 0;
+        adder_40 <= 0;
     end
 
 end
