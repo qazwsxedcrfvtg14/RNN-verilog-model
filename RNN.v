@@ -216,7 +216,6 @@ always @(posedge clk ) begin
         end
     endcase
 
-    i_en_sig <= 0;
     case (stage)
         0 : begin
             can_mul <= 1;
@@ -235,6 +234,7 @@ always @(posedge clk ) begin
             end
         end
         2 : begin
+            i_en_sig <= 0;
             msel_sig <= 3'b000;
             maddr_sig <= {h_offset,address[4:0]};
         end
