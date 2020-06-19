@@ -25,24 +25,30 @@ integer i;
 reg signed [`PREC3-1:0] h_old[0:63];
 reg signed [`PREC3-1:0] h_tmp[0:62], tmp;
 reg signed [`PREC-1:0] h_new;
-reg signed [22:0] adder_d[0:8];
+reg signed [20:0] adder_d[0:8];
 reg signed [23:0] adder_00, adder_01, adder_02, adder_03;
 reg signed [20:0] adder_04;
 reg signed [28:0] adder_10;
-reg signed [29:0] adder_11;
-reg signed [38:0] adder_20;
+reg signed [28:0] adder_11;
+reg signed [20:0] adder_12;
+reg signed [37:0] adder_20;
+reg signed [20:0] adder_21;
+reg signed [38:0] adder_30;
+reg signed [39:0] adder_40;
 reg signed [19:0] add_data;
-reg signed [`PREC-1-16:0] h_new_tmp;
+reg signed [`PREC-1-16:0] h_round;
 reg signed [`PREC4-1:0] mul_tmp, mul_tmp1, mul_tmp2, mul_tmp3;
 reg mul_on;
 reg [8:0] single;
 reg [8:0] double;
 reg [8:0] neg;
-reg signed [19:0] mul_data;
+reg signed [19:0] mul_data0,mul_data2;
+reg signed [17:0] mul_data1;
 
 reg [31:0] x_data;
 
 reg busy_sig;
+reg reset_sig;
 reg i_en_sig;
 //reg mce_sig;
 reg [19:0] mdata_w_sig;
@@ -59,6 +65,7 @@ reg [2:0] last_stage;
 reg [2:0] stage;
 reg [10:0] t_count;
 reg has_t_count;
+reg can_mul;
 
 reg carry_bit;
 
@@ -93,13 +100,28 @@ always @(posedge clk ) begin
         has_t_count <= 1;
         t_count <= mdata_r;
     end
-    busy_sig <= inited & !reset & (ready | busy_sig);
 
-    h_new <= h_new + adder_20 + $signed({add_data,16'd0});
+    reset_sig <= reset;
+    busy_sig <= inited & !reset_sig & (ready | busy_sig);
+    
+    h_new <= h_new + adder_40;
+
+    h_round <= $signed(h_new[`PREC-1:16]) + $signed(adder_40[39:16]) + $signed({1'd0,carry_bit});
+
+    if (can_mul) begin
+        adder_40 <= adder_30 + $signed({add_data,16'd0});
+    end else begin
+        adder_40 <= $signed({add_data,16'd0});
+    end
+
+    adder_30 <= adder_20 + $signed({adder_21,16'd0});
+
     adder_20 <= adder_10 + $signed({adder_11,8'd0});
+    adder_21 <= adder_12;
 
     adder_10 <= adder_00 + $signed({adder_01,4'd0});
-    adder_11 <= adder_02 + $signed({adder_03,4'd0}) + $signed({adder_04,8'd0});
+    adder_11 <= adder_02 + $signed({adder_03,4'd0});
+    adder_12 <= adder_04;
 
     adder_00 <= adder_d[0] + $signed({adder_d[1],2'd0});
     adder_01 <= adder_d[2] + $signed({adder_d[3],2'd0});
@@ -108,46 +130,48 @@ always @(posedge clk ) begin
     adder_04 <= adder_d[8];
 
     for (i = 0; i < 9; i = i + 1) begin
-        adder_d[i] <= (single[i] ? $signed({(neg[i]?-mul_data:mul_data)     }) : double[i] ? $signed({(neg[i]?-mul_data:mul_data),1'd0}) : $signed(0) );
+        adder_d[i] <= (single[i] ? $signed({(neg[i]?-mul_data2:mul_data2)     }) : double[i] ? $signed({(neg[i]?-mul_data2:mul_data2),1'd0}) : $signed(0) );
     end
+    
+    neg[0] <= mul_data1[1];
+    neg[1] <= mul_data1[3];
+    neg[2] <= mul_data1[5];
+    neg[3] <= mul_data1[7];
+    neg[4] <= mul_data1[9];
+    neg[5] <= mul_data1[11];
+    neg[6] <= mul_data1[13];
+    neg[7] <= mul_data1[15];
+    neg[8] <= mul_data1[17];
+
+    single[0] <= 0 ^ mul_data1[0];
+    single[1] <= mul_data1[1] ^ mul_data1[2];
+    single[2] <= mul_data1[3] ^ mul_data1[4];
+    single[3] <= mul_data1[5] ^ mul_data1[6];
+    single[4] <= mul_data1[7] ^ mul_data1[8];
+    single[5] <= mul_data1[9] ^ mul_data1[10];
+    single[6] <= mul_data1[11] ^ mul_data1[12];
+    single[7] <= mul_data1[13] ^ mul_data1[14];
+    single[8] <= mul_data1[15] ^ mul_data1[16];
+
+    double[0] <= (0 == mul_data1[0]) & (mul_data1[0] ^ mul_data1[1]);
+    double[1] <= (mul_data1[1] == mul_data1[2]) & (mul_data1[2] ^ mul_data1[3]);
+    double[2] <= (mul_data1[3] == mul_data1[4]) & (mul_data1[4] ^ mul_data1[5]);
+    double[3] <= (mul_data1[5] == mul_data1[6]) & (mul_data1[6] ^ mul_data1[7]);
+    double[4] <= (mul_data1[7] == mul_data1[8]) & (mul_data1[8] ^ mul_data1[9]);
+    double[5] <= (mul_data1[9] == mul_data1[10]) & (mul_data1[10] ^ mul_data1[11]);
+    double[6] <= (mul_data1[11] == mul_data1[12]) & (mul_data1[12] ^ mul_data1[13]);
+    double[7] <= (mul_data1[13] == mul_data1[14]) & (mul_data1[14] ^ mul_data1[15]);
+    double[8] <= (mul_data1[15] == mul_data1[16]) & (mul_data1[16] ^ mul_data1[17]);
+    
+    mul_data2 <= mul_data0;
 
     if (mul_on) begin
-        neg[0] <= h_old[address][1];
-        neg[1] <= h_old[address][3];
-        neg[2] <= h_old[address][5];
-        neg[3] <= h_old[address][7];
-        neg[4] <= h_old[address][9];
-        neg[5] <= h_old[address][11];
-        neg[6] <= h_old[address][13];
-        neg[7] <= h_old[address][15];
-        neg[8] <= h_old[address][17];
-
-        single[0] <= 0 ^ h_old[address][0];
-        single[1] <= h_old[address][1] ^ h_old[address][2];
-        single[2] <= h_old[address][3] ^ h_old[address][4];
-        single[3] <= h_old[address][5] ^ h_old[address][6];
-        single[4] <= h_old[address][7] ^ h_old[address][8];
-        single[5] <= h_old[address][9] ^ h_old[address][10];
-        single[6] <= h_old[address][11] ^ h_old[address][12];
-        single[7] <= h_old[address][13] ^ h_old[address][14];
-        single[8] <= h_old[address][15] ^ h_old[address][16];
-
-        double[0] <= (0 == h_old[address][0]) & (h_old[address][0] ^ h_old[address][1]);
-        double[1] <= (h_old[address][1] == h_old[address][2]) & (h_old[address][2] ^ h_old[address][3]);
-        double[2] <= (h_old[address][3] == h_old[address][4]) & (h_old[address][4] ^ h_old[address][5]);
-        double[3] <= (h_old[address][5] == h_old[address][6]) & (h_old[address][6] ^ h_old[address][7]);
-        double[4] <= (h_old[address][7] == h_old[address][8]) & (h_old[address][8] ^ h_old[address][9]);
-        double[5] <= (h_old[address][9] == h_old[address][10]) & (h_old[address][10] ^ h_old[address][11]);
-        double[6] <= (h_old[address][11] == h_old[address][12]) & (h_old[address][12] ^ h_old[address][13]);
-        double[7] <= (h_old[address][13] == h_old[address][14]) & (h_old[address][14] ^ h_old[address][15]);
-        double[8] <= (h_old[address][15] == h_old[address][16]) & (h_old[address][16] ^ h_old[address][17]);
+        mul_data1 = h_old[address];
     end else begin
-        neg <= 0;
-        single <= 0;
-        double <= 0;
+        mul_data1 = 0;
     end
 
-    mul_data <= mdata_r;
+    mul_data0 <= mdata_r;
     add_data <= 0;
     carry_bit <= h_new[15];
     
@@ -172,20 +196,10 @@ always @(posedge clk ) begin
                 end
             end
             3 : begin
-                add_data <= carry_bit;
             end
             4 : begin
             end
             5 : begin
-                // h_new_tmp = h_new[`PREC-1:16] + carry_bit;
-                h_new_tmp = h_new[`PREC-1:16];
-                if ((|h_new_tmp[`PREC-2-16:16])&!h_new_tmp[`PREC-1-16]) begin
-                    tmp = 20'h10000;
-                end else if ((|(~h_new_tmp[`PREC-2-16:16]))&h_new_tmp[`PREC-1-16]) begin
-                    tmp = 20'hf0000;
-                end else begin
-                    tmp = h_new_tmp[19:0];
-                end
             end
             6 : begin
                 if(h_offset==0) begin
@@ -233,6 +247,13 @@ always @(posedge clk ) begin
                 msel_sig = 3'b101;
                 address = 0;
                 maddr_sig = {t_offset,h_offset};
+                if ((|h_round[`PREC-2-16:16])&!h_round[`PREC-1-16]) begin
+                    tmp = 20'h10000;
+                end else if ((|(~h_round[`PREC-2-16:16]))&h_round[`PREC-1-16]) begin
+                    tmp = 20'hf0000;
+                end else begin
+                    tmp = h_round[19:0];
+                end
                 mdata_w_sig = tmp;
                 if((&h_offset)) begin
                     t_offset = t_offset + 1;
@@ -242,6 +263,7 @@ always @(posedge clk ) begin
                 h_offset = h_offset + 1;
             end
             7 : begin
+                can_mul = 1;
                 mul_on = 1;
                 msel_sig = 3'b010;
                 address = address + 1;
@@ -254,8 +276,9 @@ always @(posedge clk ) begin
         end else if (address==0) begin
             stage = stage + 1;
         end
-    end 
-    if (reset) begin
+    end
+    
+    if (reset_sig) begin
         inited = 1;
         has_t_count <= 0;
         t_count <= -1;
@@ -269,7 +292,9 @@ always @(posedge clk ) begin
         //mce_sig = 0;
         h_new <= 0;
         mul_on = 0;
+        can_mul = 0;
     end
+
 end
 
 endmodule
