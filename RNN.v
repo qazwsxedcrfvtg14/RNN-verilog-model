@@ -195,11 +195,8 @@ always @(posedge clk ) begin
                     add_data <= $signed(mdata_r);
                 end
             end
-            3 : begin
-            end
-            4 : begin
-            end
-            5 : begin
+            3,4,5 : begin
+                // stall
             end
             6 : begin
                 if(h_offset==0) begin
@@ -234,13 +231,7 @@ always @(posedge clk ) begin
                 address = (address + 1) & 31;
                 maddr_sig = {h_offset,address[4:0]};
             end
-            3 : begin
-                // stall
-            end
-            4 : begin
-                // stall
-            end
-            5 : begin
+            3,4,5 : begin
                 // stall
             end
             6 : begin
