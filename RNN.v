@@ -182,9 +182,7 @@ always @(posedge clk ) begin
     add_data <= 0;
     carry_bit <= h_new[15];
 
-    if (i_en_sig) begin
-        x_data <= idata;
-    end
+    x_data <= idata;
 
     if(t_count==t_offset) begin
         inited <= 0;
