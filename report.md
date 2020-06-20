@@ -12,78 +12,78 @@
 3. 乘法器
     * 在寫之前就有預想到乘法部分會變成 critical path，而實際用 design compiler 跑下去結果也是如此。因此使用 booth algorithm 把他變成幾個數字的加法，然後把加總的部分使用 pipeline 來處理，這樣就能壓低 cycle time。
 4. Pipeline
-    * 盡量把大步驟拆成多個小步驟，然後盡量把小步驟均勻的分散到每個 state 中，使得每個 state 的執行時間都差不多，就能達到pipeline的效果，並壓低 cycle time。
+    * ~~盡量把大步驟拆成多個小步驟，然後盡量把小步驟均勻的分散到每個 state 中，使得每個 state 的執行時間都差不多，就能達到pipeline的效果，並壓低 cycle time。~~(盡量把所有的 delay 超過兩次 40bit 加法的運算都拆開變成多級的 pipeline，然後盡量讓資料輸入的當個 cycle 不要做額外的運算，只把資料存到 register 中，下個cycle才開始運算，並且在輸出前加入幾個 stall ，讓運算有時間算完)
 5. 讀寫優化
     * ~~盡量讓每個 register 寫入之後都不要在同個 cycle 中去讀他，可以讓 compiler 更容易的優化這種東西。~~(後來直接把所有的=都換成<=)
 6. 乘法和加法單元
-    * 因為乘法和加法的部份仍然容易成為 critical path，因此把乘法和加法的部分拉到外面變成單獨一塊，這樣計算乘法和加法前就不需要 stage 等等的判斷。
+    * ~~因為乘法和加法的部份仍然容易成為 critical path，因此把乘法和加法的部分拉到外面變成單獨一塊，這樣計算乘法和加法前就不需要 stage 等等的判斷。~~(後來的設計中，已經把幾乎所有的東西都從 stage 的判斷中拉出去了，這樣可以減少 stage 所造成的 delay)
 7. Transistor-level 合成
     * Transistor-level 合成的時候，在 nano Route 這個階段的時候，如果 WNS 不夠大，innovus 會直接 crash。後來發現的解決方法是事先先執行 ECO Design，然後到 Mode 裡面把 Thresholds 裡的 Setup Slack 提高，這樣就能讓WNS變成正比較大的值，而不是 0.000 附近。這樣之後就能順利的讓 nano Route 不會 crash 了。
 8. Cycle time
-    * 這個 verilog 在 Gate-Level 合成的時候，用 2ns 當 cycle time 也能合成的出來(timing可以得到MET)，但是拿去模擬的時候就會出現問題，而看起來主要都是 hold time violation，但是因為找不到解決的方式，最後只能把 cycle time 調整成 3.6 ns 才不會出錯。
+    * 這個 verilog 在 Gate-Level 合成的時候，用 2ns 當 cycle time 也能合成的出來 (timing 可以得到 MET)，但是拿去模擬的時候就會出現問題，而看起來主要都是 hold time violation，但是因為找不到解決的方式，最後只能把 cycle time 調整成 3.0 ns 才不會出錯。
 9. 合成參數
     * Gate-Level
-      * Cycle time: $3.6$ $ns$
+      * Cycle time: $3.0$ $ns$
     * Transistor-Level
-      * Cycle time: $3.6$ $ns$
+      * Cycle time: $3.0$ $ns$
 10. 結果
     * Gate-level results
         * Can you pass gate-level simulation?
             * yes
         * Cycle time that can pass your gate-level simulation:
-            * $3.6$ $ns$
+            * $3.0$ $ns$
         * Total simulation time:
-            * $4685447.578$ $ns$
+            * $3904540.036$ $ns$
         * Total cell area:
-            * $140038.896131$ $\mu{m^2}$
+            * $146197.063362$ $\mu{m^2}$
         * Cell area $\times$ Simulation time:
-            * $656144906702.7875$ $\mu{m^2}\cdot{ns}$
+            * $570832287042.5577$ $\mu{m^2}\cdot{ns}$
     * Transistor-level results
         * Can you pass transistor-level simulation?
             * yes
         * Cycle time that can pass your transistor-level simulation:
-            * $3.6$ $ns$
+            * $3.0$ $ns$
         * Total simulation time:
-            * $4685447.569$ $ns$
+            * $3904539.831$ $ns$
         * Total cell area:
-            * $147578.746$ $\mu{m^2}$
+            * $154015.286$ $\mu{m^2}$
         * Cell area $\times$ Simulation time:
-            * $691472476681.7686$ $\mu{m^2}\cdot{ns}$
+            * $601358818769.8566$ $\mu{m^2}\cdot{ns}$
 11. 截圖
     * RTL Pass
-     ![_](imgs/註解%202020-06-20%20061807.png)
+     ![_](imgs/註解%202020-06-21%20003112.png)
     * Gate-level Area Report
-     ![_](imgs/註解%202020-06-20%20062407.png)
+     ![_](imgs/註解%202020-06-21%20003222.png)
     * Gate-level Timing Report
-     ![_](imgs/註解%202020-06-20%20062501.png)
+     ![_](imgs/註解%202020-06-21%20003244.png)
     * Gate-level Pass
-     ![_](imgs/註解%202020-06-20%20061053.png)
+     ![_](imgs/註解%202020-06-21%20004502.png)
     * Transistor-level Floorplan
-     ![_](imgs/註解%202020-06-20%20051904.png)
-     ![_](imgs/註解%202020-06-20%20051927.png)
+     ![_](imgs/註解%202020-06-21%20004613.png)
+     ![_](imgs/註解%202020-06-21%20004741.png)
     * Transistor-level Full placement
-     ![_](imgs/註解%202020-06-20%20052046.png)
-     ![_](imgs/註解%202020-06-20%20053442.png)
-     ![_](imgs/註解%202020-06-20%20053607.png)
+     ![_](imgs/註解%202020-06-21%20004854.png)
+     ![_](imgs/註解%202020-06-21%20005012.png)
+     ![_](imgs/註解%202020-06-21%20005029.png)
     * Transistor-level Power Ring
-     ![_](imgs/註解%202020-06-20%20053700.png)
+     ![_](imgs/註解%202020-06-21%20005130.png)
     * Transistor-level Power Stripe
-     ![_](imgs/註解%202020-06-20%20053719.png)
-     ![_](imgs/註解%202020-06-20%20053758.png)
-     ![_](imgs/註解%202020-06-20%20053909.png)
+     ![_](imgs/註解%202020-06-21%20005150.png)
+     ![_](imgs/註解%202020-06-21%20005221.png)
+     ![_](imgs/註解%202020-06-21%20005251.png)
     * Transistor-level CTS
-     ![_](imgs/註解%202020-06-20%20054159.png)
-     ![_](imgs/註解%202020-06-20%20054240.png)
-     ![_](imgs/註解%202020-06-20%20054320.png)
+     ![_](imgs/註解%202020-06-21%20005539.png)
+     ![_](imgs/註解%202020-06-21%20005603.png)
+     ![_](imgs/註解%202020-06-21%20005641.png)
     * Transistor-level Special Route
-     ![_](imgs/註解%202020-06-20%20054401.png)
-     ![_](imgs/註解%202020-06-20%20054437.png)
+     ![_](imgs/註解%202020-06-21%20005709.png)
+     ![_](imgs/註解%202020-06-21%20005748.png)
     * Transistor-level Nano Route
-     ![_](imgs/註解%202020-06-20%20054750.png)
-     ![_](imgs/註解%202020-06-20%20054850.png)
-     ![_](imgs/註解%202020-06-20%20054919.png)
-     ![_](imgs/註解%202020-06-20%20054946.png)
+     ![_](imgs/註解%202020-06-21%20005848.png)
+     ![_](imgs/註解%202020-06-21%20005937.png)
+     ![_](imgs/註解%202020-06-21%20010005.png)
+     ![_](imgs/註解%202020-06-21%20010038.png)
     * Transistor-level Summary
-     ![_](imgs/註解%202020-06-20%20062532.png)
+     ![_](imgs/註解%202020-06-21%20010309.png)
     * Transistor-level Pass
-     ![_](imgs/註解%202020-06-20%20061726.png)
+     ![_](imgs/註解%202020-06-21%20010327.png)
